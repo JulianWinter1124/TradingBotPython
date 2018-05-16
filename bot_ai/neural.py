@@ -1,18 +1,20 @@
 import keras
 import pandas as pd
+from keras.callbacks import History
 from keras.models import Sequential
-from keras.layers import Dense, Activation
+from keras.layers import Dense, Activation, LSTM
 
 from util import data_enhancer
 
 
 class Neural:
 
-    def build_binary_model(self, training_data: pd.DataFrame, labels):  # https://keras.io/getting-started/sequential-model-guide/
+    def build_model(self, train_X) -> Sequential:  # https://keras.io/getting-started/sequential-model-guide/
         model = Sequential()
-        model.add(Dense(32, input_shape=training_data.shape))
-        model.add(Activation('relu'))
+        model.add(LSTM(50, input_shape=(train_X.shape[1], train_X.shape[2])))
+        model.add(Dense(1))
+        model.compile(optimizer='adam', loss='mae')
+        return model
 
-        model.compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy'])  # binary classification; might want to tune optimizer params with hyperopts
-        one_hot_labels = keras.utils.to_categorical(labels, num_classes=2)
-        model.fit(training_data, one_hot_labels, epochs=10, batch_size=32)
+    def train_model(self, model, train_X, train_Y, test_X, test_y) -> History:
+        return model.fit(train_X, train_Y, epochs=100, batch_size=72, verbose=1, validation_data=(test_X, test_y), shuffle=False)
