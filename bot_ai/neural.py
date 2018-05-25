@@ -1,48 +1,45 @@
-from keras.callbacks import History, CSVLogger, ModelCheckpoint
+import os
+
+from keras.callbacks import History, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 from keras.models import Sequential, load_model
-from keras.layers import Dense, Activation, LSTM, Dropout, LeakyReLU
-
-from util import data_enhancer
+from keras.layers import Dense, Activation, LSTM, Dropout, LeakyReLU, regularizers
 
 
-class Neural:
+class Neural():
 
-    def __init__(self):
-        self.epochs = 10 #100
-        self.output_size = 1
-        self.units = 50
-        self.second_units = 30
-        self.batch_size = 8
+    def __init__(self, model_name, overwrite = False, units = 10, batch_size = 10, output_size = 1, regularizer = 1.0):
+        self.overwrite = overwrite
+        self.units = units  # output dimension
+        self.batch_size = batch_size  # how much data is processed at once
+        self.regularizer = regularizer # no clue
+        self.filepath = 'data/training/LSTM_' + model_name + '.h5'
+        self.output_size = output_size
+        self.model: Sequential = None
+        # From https://www.kaggle.com/cbryant/keras-cnn-with-pseudolabeling-0-1514-lb/ might need tuning
+        self.earlyStopping = EarlyStopping(monitor='val_loss', patience=10, verbose=0, mode='min')
+        self.mcp_save = ModelCheckpoint(self.filepath, save_best_only=True, monitor='val_loss', mode='min', verbose=1)
+        self.reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7, verbose=1, min_delta=1e-4,
+                                                mode='min')
 
-    # TODO: make these non static
-    def load_model(self, filepath):
-        return load_model(filepath)
+    def load_or_build_model(self, timesteps, nb_features):  # Model structure altered from https://github.com/khuangaf/CryptocurrencyPrediction/blob/master/LSTM.py
+        if self.overwrite or not os.path.isfile(self.filepath):  # Is there no existing model?
+            self.model = Sequential()
+            self.model.add(LSTM(units=self.units, activity_regularizer=regularizers.l1(self.regularizer),
+                           input_shape=(timesteps, nb_features), return_sequences=False))
+            self.model.add(Activation('tanh'))
+            self.model.add(Dropout(0.2))
+            self.model.add(Dense(self.output_size))
+            self.model.add(LeakyReLU())
+            self.model.compile(loss='mse', optimizer='adam')
+            self.model.save(self.filepath)
+        else:
+            self.model = load_model(self.filepath)
 
-    def save_model(self, filepath, model):
-        model.save(filepath)
+    def train_model(self, train_X, train_Y, test_X, test_Y, epochs):
+        history = self.model.fit(train_X, train_Y, batch_size=self.batch_size, validation_data=(test_X, test_Y),
+                            epochs=epochs, callbacks=[self.earlyStopping, self.mcp_save, self.reduce_lr_loss])  # test
+        # model.save(self.filepath) # should be done by ModelCheckpoint
+        return history
 
-    def build_model(self, train_X, train_y) -> Sequential:  # https://keras.io/getting-started/sequential-model-guide/
-        model = Sequential()
-        model.add(LSTM(units=self.units, activation='tanh', input_shape=(train_X.shape[1], train_X.shape[2]), return_sequences=False))
-        model.add(Dropout(0.8))
-        model.add(Dense(self.output_size))
-        model.add(LeakyReLU())
-        model.compile(loss='mse', optimizer='adam')
-        return model
-
-    def build_model_2(self, train_X):
-        model = Sequential()
-        model.add(LSTM(50, input_shape=(train_X.shape[1], train_X.shape[2])))
-        model.add(Dense(1))
-        model.compile(loss='mae', optimizer='adam')
-        return model
-
-    def train_model_2(self, model, train_X, train_y, test_X, test_y) -> History:
-        return model.fit(train_X, train_y, epochs=50, batch_size=72, validation_data=(test_X, test_y), verbose=2,
-                            shuffle=False)
-
-    def train_model(self, model, train_X, train_y, test_X, test_y) -> History:
-        # return model.fit(train_X, train_y, epochs=100, batch_size=8, verbose=2, validation_data=(test_X, test_y), shuffle=False)
-
-        return model.fit(train_X, train_y, batch_size=self.batch_size,
-              validation_data=(test_X, test_y), epochs=self.epochs)
+    def predict(self, data):
+        return self.model.predict(data)

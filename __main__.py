@@ -26,7 +26,7 @@ def load_data():
     n_features = len(df.columns)
     reframed = de.series_to_supervised(scaled_df, n_hours, 0)
     # drop columns we don't want to predict
-    reframed.drop(reframed.columns[[-7, -6, -5, -4, -3, -2, -1]], axis=1, inplace=True)
+    reframed.drop(reframed.columns[np.arange(-n_features+1, 0)], axis=1, inplace=True)
     # TODO
     # One-hot encoding wind speed.
     # Making all series stationary with differencing and seasonal adjustment.
@@ -46,18 +46,17 @@ def load_data():
     print(train_X.shape, train_y.shape, test_X.shape, test_y.shape)
     print(reframed.head())
 
-    neur = neural.Neural()
-    #model = neur.build_model_2(train_X)
-    model = neur.build_model(train_X, train_y)
-    #history = neur.train_model_2(model, train_X, train_y, test_X, test_y)
-    history = neur.train_model(model, train_X, train_y, test_X, test_y)
+    neur = neural.Neural('BTC_USD_15min', overwrite=False)
+    model = neur.load_or_build_model(n_hours, n_features)
+    history = neur.train_model(train_X, train_y, test_X, test_y, 10)
+
     plt.plot(history.history['loss'], label='train')
     plt.plot(history.history['val_loss'], label='test')
     plt.legend()
     plt.show()
 
     # make a prediction
-    yhat = model.predict(test_X)
+    yhat = neur.predict(test_X)
     test_X = test_X.reshape((test_X.shape[0], n_hours * n_features))
     inv_yhat = np.concatenate((yhat, test_X[:, -7:]), axis=1)
     inv_yhat = scaler.inverse_transform(inv_yhat)
