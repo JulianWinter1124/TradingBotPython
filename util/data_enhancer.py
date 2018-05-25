@@ -24,14 +24,41 @@ def make_ranged_labels(closing_price_column):
     return label_list
 
 
-def create_shifted_datasets(dataset, shift=1, prediction_index=1):
-    size = len(dataset)
+def create_shifted_datasets(dataset, shift=1):
     print(dataset.shape)
-    Y = dataset[shift:size, prediction_index]
-    X = dataset[0:size - shift, :]
+    Y = dataset[shift:, :]
+    X = dataset[0:-shift, :]
     return X, Y
 
 
-def split_dataset_in_training_and_test(dataset, train_size: float = 0.67):
+def split_dataset_in_training_and_test(dataset, train_size: float = 0.80):
     data_index = int(len(dataset) * train_size)
     return dataset[0:data_index, :], dataset[data_index:len(dataset), :]
+
+
+def series_to_supervised(df: pd.DataFrame, n_in=1, n_out=1, dropnan=True):
+    """
+    Alterd from:
+    Frame a time series as a supervised learning dataset.
+    Arguments:
+        data: Sequence of observations as a DataFrame
+        n_in: Number of lag observations as input (X).
+        n_out: Number of observations as output (y).
+        dropnan: Boolean whether or not to drop rows with NaN values.
+    Returns:
+        Pandas DataFrame of series framed for supervised learning.
+    """
+    var_names = df.columns
+    cols, names = list(), list()
+    for i in range(n_in, -n_out-1, -1):
+        column = df.shift(i)
+        # column['date'] = column['date'].fillna(0).astype(int)
+        cols.append(column)
+        names += [s + '(%+d)' % (-i) for s in var_names]
+    # put it all together
+    agg = pd.concat(cols, axis=1)
+    agg.columns = names
+    # drop rows with NaN values
+    if dropnan:
+        agg.dropna(inplace=True)
+    return agg

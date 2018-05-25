@@ -33,3 +33,5 @@ class DataEnhancerTest(unittest.TestCase):
         test3_expect = [0.25, 0.25, 0.25, 0.25]
         calc3 = data_enhancer.make_ranged_labels(test3)
         self.assertEqual(test3_expect, calc3)
+
+    def test
