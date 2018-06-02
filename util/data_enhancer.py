@@ -36,7 +36,7 @@ def split_dataset_in_training_and_test(dataset, train_size: float = 0.80):
     return dataset[0:data_index, :], dataset[data_index:len(dataset), :]
 
 
-def series_to_supervised(df: pd.DataFrame, n_in=1, n_out=1, dropnan=True):
+def series_to_supervised(df: pd.DataFrame, n_in=1, n_out=1, dropnan=True, drop_cols=[]):
     """
     Alterd from:
     Frame a time series as a supervised learning dataset.
@@ -48,13 +48,14 @@ def series_to_supervised(df: pd.DataFrame, n_in=1, n_out=1, dropnan=True):
     Returns:
         Pandas DataFrame of series framed for supervised learning.
     """
-    var_names = df.columns
+    df = df.drop(columns=drop_cols)
+    var_names = df.columns.values
     cols, names = list(), list()
     for i in range(n_in, -n_out-1, -1):
         column = df.shift(i)
         # column['date'] = column['date'].fillna(0).astype(int)
         cols.append(column)
-        names += [s + '(%+d)' % (-i) for s in var_names]
+        names += [str(s) + '(%+d)' % (-i) for s in var_names]
     # put it all together
     agg = pd.concat(cols, axis=1)
     agg.columns = names
@@ -62,3 +63,6 @@ def series_to_supervised(df: pd.DataFrame, n_in=1, n_out=1, dropnan=True):
     if dropnan:
         agg.dropna(inplace=True)
     return agg
+
+def supervised_to_split_nparrays(df: pd.DataFrame):
+    return df.iloc[:, 0:-1].values, df.iloc[: -1].values

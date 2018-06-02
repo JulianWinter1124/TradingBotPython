@@ -2,7 +2,9 @@ import datetime
 import math
 
 import pandas as pd
+from keras.preprocessing.sequence import TimeseriesGenerator
 
+from bot.data_sequencer import DataSequencer
 from bot_ai import neural
 from util import data_enhancer as de
 from matplotlib import pyplot as plt
@@ -17,6 +19,7 @@ def load_data():
     values = df.values
     values = values.astype('float32')
     # normalize features
+    print(values.shape)
     scaler = MinMaxScaler(feature_range=(0, 1))
     scaled = scaler.fit_transform(values)
     scaled_df = pd.DataFrame(scaled)
@@ -28,7 +31,6 @@ def load_data():
     # drop columns we don't want to predict
     reframed.drop(reframed.columns[np.arange(-n_features+1, 0)], axis=1, inplace=True)
     # TODO
-    # One-hot encoding wind speed.
     # Making all series stationary with differencing and seasonal adjustment.
     # Providing more than 1 hour of input time steps.
     values = reframed.values
@@ -40,6 +42,7 @@ def load_data():
     train_X, train_y = train[:, :n_obs], train[:, -n_features]
     test_X, test_y = test[:, :n_obs], test[:, -n_features]
     print(train_X.shape, len(train_X), train_y.shape)
+    print(reframed.iloc[:, 0:-1])
     # reshape input to be 3D [samples, timesteps, features]
     train_X = train_X.reshape((train_X.shape[0], n_hours, n_features))
     test_X = test_X.reshape((test_X.shape[0], n_hours, n_features))
@@ -70,6 +73,7 @@ def load_data():
     print(inv_y)
     # calculate RMSE
     rmse = np.math.sqrt(mean_squared_error(inv_y, inv_yhat))
+    print(rmse)
     print(yhat.shape)
     print(test_y.shape)
     print(test_y)
@@ -82,32 +86,62 @@ def load_data():
 
 
 if __name__ == '__main__':
-    #df = pd.read_json('https://poloniex.com/public?command=returnChartData&currencyPair=USDT_BTC&start=1405699200&end=9999999999&period=300', convert_dates=False)
-    #df.to_csv('data/BTCUSD300.csv', index=False)
-    #df = pd.read_csv('data/BTCUSD300.csv')
-    # print(type(df.dtypes))
-    # print(df.head(5))
-    # print(de.series_to_supervised(df, 1, 2).head(5))
-    # data = df.values
-    # train, test = de.split_dataset_in_training_and_test(data, 0.80)
-    #
-    # train_X, train_y = de.create_shifted_datasets(train)
-    # test_X, test_y = de.create_shifted_datasets(test)
-    #
-    # prices = data[:, 0]  # Get the close price column
-    # train_X = train_X.reshape((train_X.shape[0], 1, train_X.shape[1]))
-    # test_X = test_X.reshape((test_X.shape[0], 1, test_X.shape[1]))
-    # print(train_X.shape, train_y.shape, test_X.shape, test_y.shape)
-    #
-    # neur = neural.Neural()
-    # model = neur.build_model(train_X)
-    # history = neur.train_model(model, train_X, train_y, test_X, test_y)
-    #
-    # plt.plot(history.history['loss'], label='train')  # OmegaLUL
-    # plt.plot(history.history['val_loss'], label='test')
-    # plt.legend()
-    # plt.show()
-    #
-    # lul = model.predict(test_X)
-    # print(lul)
-    load_data()
+    # df = pd.read_json(
+    #     'https://poloniex.com/public?command=returnChartData&currencyPair=USDT_BTC&start=1457073300&end=9999999999&period=300',
+    #     convert_dates=False)
+    # df = df.drop('weightedAverage', 1)  # clean
+    # df.to_csv('data/BTCUSD300.csv', index=False)
+    df = pd.read_csv('data/BTCUSD300.csv')
+    df = df.drop(columns=['volume', 'quoteVolume'], axis=1)
+    df = df.tail(150000)#.reset_index(drop=True)
+    scaler = MinMaxScaler(feature_range=(0,1))
+    scaled_df = pd.DataFrame(scaler.fit_transform(df.values), columns=df.columns)
+    n_hours = 20
+    n_hours_future = 0
+    n_features = len(scaled_df.columns)
+    reframed_df = de.series_to_supervised(scaled_df, n_hours, n_hours_future)
+    reframed_df.drop(reframed_df.columns[np.arange(-n_features + 1, 0)], axis=1, inplace=True)
+    reframed = reframed_df.values
+
+    split_index = int(0.8*len(reframed))
+    train, test = reframed[0:split_index, :], reframed[split_index:, :]
+
+    n_obs = n_hours * n_features
+    label_index = 1
+    train_X, train_y = train[:, :n_obs], train[:, -1]
+    test_X, test_y = test[:, :n_obs], test[:, -1]
+    print(train_X.shape, train_y.shape)
+    plt.plot(df['date'], df['close'], label='actual')
+    plt.legend()
+    plt.show()
+
+    train_X = train_X.reshape((train_X.shape[0], n_hours, n_features))
+    test_X = test_X.reshape((test_X.shape[0], n_hours, n_features))
+    print(train_X)
+    print(train_y)
+
+    neur = neural.Neural('BTC_USD_15min', overwrite=True, batch_size=16)
+    model = neur.load_or_build_model(n_hours, n_features)
+    history = neur.train_model(train_X, train_y, test_X, test_y, epochs=20)
+
+    plt.plot(history.history['loss'], label='train')
+    plt.plot(history.history['val_loss'], label='test')
+    plt.legend()
+    plt.show()
+
+    yhat = neur.predict(test_X)
+    print(yhat)
+    test_y = test_y.reshape((test_y.shape[0], 1))
+    test_X = test_X.reshape((test_X.shape[0], n_hours * n_features))
+    test_X = test_X[:, -n_features:-1]
+    print(pd.DataFrame(test_X))
+    test_pred = np.concatenate((yhat, test_X), axis=1)
+    test_actual = np.concatenate((test_y, test_X), axis=1)
+    print(pd.DataFrame(test_pred, columns=df.columns))
+    print(pd.DataFrame(test_actual, columns=df.columns))
+    test_pred = pd.DataFrame(scaler.inverse_transform(test_pred), columns = df.columns)
+    test_actual = pd.DataFrame(scaler.inverse_transform(test_actual), columns = df.columns)
+    plt.plot(df['date'].iloc[-len(test_X):], test_pred['close'], label='prediciton')
+    plt.plot(df['date'].iloc[-len(test_X):], test_actual['close'], label='actual', linewidth=0.5)
+    plt.legend()
+    plt.show()

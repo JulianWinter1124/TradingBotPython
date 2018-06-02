@@ -30,14 +30,14 @@ class Neural():
             self.model.add(Dropout(0.2))
             self.model.add(Dense(self.output_size))
             self.model.add(LeakyReLU())
-            self.model.compile(loss='mse', optimizer='adam')
+            self.model.compile(loss='mse', optimizer='RMSprop')
             self.model.save(self.filepath)
         else:
             self.model = load_model(self.filepath)
 
     def train_model(self, train_X, train_Y, test_X, test_Y, epochs):
         history = self.model.fit(train_X, train_Y, batch_size=self.batch_size, validation_data=(test_X, test_Y),
-                            epochs=epochs, callbacks=[self.earlyStopping, self.mcp_save, self.reduce_lr_loss])  # test
+                            epochs=epochs, callbacks=[self.mcp_save])#, self.reduce_lr_loss])  # test
         # model.save(self.filepath) # should be done by ModelCheckpoint
         return history
 

@@ -1,3 +1,5 @@
+import itertools
+
 import pandas as pd
 import numpy as np
 import unittest
@@ -34,4 +36,37 @@ class DataEnhancerTest(unittest.TestCase):
         calc3 = data_enhancer.make_ranged_labels(test3)
         self.assertEqual(test3_expect, calc3)
 
-    def test
+
+import util.data_modifier as dm
+from definitions import ROOT_DIR
+import os
+class DataModifierTest(unittest.TestCase):
+
+    def test_data_to_supervised(self):
+        df = pd.read_csv(os.path.join(ROOT_DIR, 'data/BTCUSD300.csv'))
+        for i, j in itertools.product(range(1, 3), range(3)):
+            timeseries = dm.data_to_supervised(df, n_in=i, n_out=j, drop_columns_label=['quoteVolume'], label_columns=['close'])
+            print('###############################################################')
+            print(timeseries.head(1))
+
+        for i, j in itertools.product(range(1, 2), range(2)):
+            timeseries = dm.data_to_supervised(df, n_in=i, n_out=j, drop_columns_label=['quoteVolume'], label_columns=['close', 'volume'])
+            print('###############################################################')
+            print(timeseries.head(1))
+
+    def test_add_indicators(self):
+        df = pd.read_csv(os.path.join(ROOT_DIR, 'data/BTCUSD300.csv'))
+        print('normal:', df.shape)
+        print(dm.add_SMA_indicator_to_data(df.values).shape)
+        print(dm.add_RSI_indicator_to_data(df.values).shape)
+        print(dm.add_BBANDS_indicator_to_data(df.values).shape)
+        print(dm.add_OBV_indicator_to_data(df.values, [0, 6]).shape)
+
+    def test_drop_NaN_rows(self):
+        df = pd.read_csv(os.path.join(ROOT_DIR, 'data/BTCUSD300.csv'))
+        sma = dm.add_SMA_indicator_to_data(df.values, timeperiod=40)
+        print(len(sma) - len(dm.drop_NaN_rows(sma)))
+        sma = dm.add_SMA_indicator_to_data(df.values, timeperiod=30)
+        print(len(sma) - len(dm.drop_NaN_rows(sma)))
+
+
