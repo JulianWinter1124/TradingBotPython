@@ -62,6 +62,10 @@ class DataModifierTest(unittest.TestCase):
         print(dm.add_BBANDS_indicator_to_data(df.values).shape)
         print(dm.add_OBV_indicator_to_data(df.values, [0, 6]).shape)
 
+        test = pd.DataFrame(dm.add_BBANDS_indicator_to_data(df.values))
+        print(dm.data_to_supervised(test))
+
+
     def test_drop_NaN_rows(self):
         df = pd.read_csv(os.path.join(ROOT_DIR, 'data/BTCUSD300.csv'))
         sma = dm.add_SMA_indicator_to_data(df.values, timeperiod=40)

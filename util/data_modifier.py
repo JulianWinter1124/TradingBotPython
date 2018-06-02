@@ -41,20 +41,16 @@ def normalize_data(data, scaler):
         return data
 
 
-def data_to_supervised(df: pd.DataFrame, n_in=1, n_out=1, dropnan=True, drop_columns_label=[], label_columns=['close']):
-    df = df.drop(columns=drop_columns_label)
-    var_names = df.columns.values
+def data_to_supervised(data, n_in=1, n_out=1, dropnan=True, drop_columns_indices=[], label_columns_indices=[0]):
+    data = np.delete(data, drop_columns_indices, axis=1)
     cols, names = list(), list()
     for i in range(n_in, -n_out - 1, -1):
         column = df.shift(i)
         if i <= 0:
-            column = column.loc[:, label_columns]
-            names += [str(s) + '(%+d)' % (-i) for s in label_columns]
-        else:
-            names += [str(s) + '(%+d)' % (-i) for s in var_names]
+            column = column[:, label_columns_indices]
         cols.append(column)
     # put it all together
-    agg = pd.concat(cols, axis=1)
+    agg = np.concatenate(cols, axis=1)
     agg.columns = names
     # drop rows with NaN values
     if dropnan:
@@ -85,3 +81,24 @@ def add_OBV_indicator_to_data(data, close_and_volume_index=[0, 5]):  # Volume in
 
 def drop_NaN_rows(data):
     return data[~np.isnan(data).any(axis=1)]
+
+def create_binary_labels(closing_price_column):
+    """Calculate labels (-1 for down or 1 for up)
+    :param closing_price_column: The data the labels are generated from
+    :return: the labels in a list with length
+    """
+    label_list = [np.sign(closing_price_column[i] - closing_price_column[i - 1]) for i in
+                  range(1, len(closing_price_column))]
+    return label_list
+
+
+def create_ranged_labels(closing_price_column):
+    """
+    :param closing_price_column: The data the labels are generated from
+    :return: difference between prices unified to (-1, 1) in R
+    """
+    high = np.max(closing_price_column)
+    low = np.min(closing_price_column)  # Bei groesser werdenden Daten evtl. aendern
+    label_list = [(closing_price_column[i] - closing_price_column[i - 1]) / (high - low) for i in
+                  range(1, len(closing_price_column))]
+    return label_list

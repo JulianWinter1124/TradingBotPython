@@ -20,7 +20,7 @@ class DataSequencer():
         self.BATCH_SIZE = batch_size
         self.dset_name = 'data'
         if overwrite or not os.path.isfile(self.filepath):
-            self.create_h5py()
+            self.create_h5py_unmodified()
 
 
 
@@ -28,11 +28,11 @@ class DataSequencer():
         return self.BASE_URL + '&currencyPair=' + self.currency_pair + '&start=' + start_date + '&end=' + end_date + '&period=' + self.time_period
 
 
-    def create_h5py(self):
+    def create_h5py_unmodified(self):
         df = pd.read_json(self.build_url(self.last_date, self.end_date), convert_dates=False)
         self.last_date = df.tail(1)['date'] + 1  # +1 so that last column is not saved twice
         with h5py.File(self.filepath, 'a') as f:
-            dset = f.create_dataset(self.dset_name, data=df.values)
+            dset = f.create_dataset(self.currency_pair, data=df.values)
             f.close()
 
 
