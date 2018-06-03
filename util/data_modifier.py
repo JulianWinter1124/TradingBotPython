@@ -51,7 +51,7 @@ def data_to_supervised(data, n_in=1, n_out=1, dropnan=True, drop_columns_indices
         cols.append(column)
     agg = np.concatenate(cols, axis=1)
     if dropnan:
-        agg = agg[n_in:-n_out]
+        agg = agg[n_in:-n_out-1]
     return agg
 
 
