@@ -24,7 +24,7 @@ class DataCollector:
     def run(self):
         while self.run:
             self.update_h5py_file()
-            time.sleep(min(self.time_periods)) #bad change later?
+            time.sleep(min(self.time_periods)) #TODO: bad, change later?
 
     def update_h5py_file(self):
         for i in range(len(self.currency_pairs)):
@@ -35,12 +35,16 @@ class DataCollector:
                 self.last_dates[i] = dset[-1, 1] + 1  # get last line's date
                 df = pd.read_json(self.build_url(self.currency_pairs[i], self.last_dates[i], self.end_dates[i], self.time_periods[i]),
                                   convert_dates=False)
+                if len(df)==1 and (df == 0).all(axis=1): # No new data?
+                    continue
                 values = df.values
                 dset.resize((dset.shape[0] + values.shape[0]), axis=0)
                 dset[-values.shape[0]:] = values
             else:
-                df = df = pd.read_json(self.build_url(self.currency_pairs[i], self.start_dates[i], self.end_dates[i], self.time_periods[i]),
+                df = pd.read_json(self.build_url(self.currency_pairs[i], self.start_dates[i], self.end_dates[i], self.time_periods[i]),
                                        convert_dates=False)
+                if len(df)==1 and (df == 0).all(axis=1):  # No new data?
+                    continue
                 self.last_dates[i] = df.tail(1)['date'] + 1
                 dset = self.h5py_file.create_dataset(dset_name, data=df.values)
 
