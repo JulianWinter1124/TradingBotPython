@@ -12,7 +12,7 @@ class DataSequencer():
     def __init__(self, filepath, time_period, currency_pair, start_date=1405699200, end_date=9999999999, expand=True,
                  overwrite=True, batch_size=8):
         self.filepath = filepath
-        self.BASE_URL = 'https://poloniex.com/public?command=returnChartData&currencyPair=USDT_BTC&start=1405699200&end=9999999999&period=' + time_period
+        self.BASE_URL = 'https://poloniex.com/public?command=returnChartData'
         self.time_period = time_period
         self.currency_pair = currency_pair
         self.start_date = start_date

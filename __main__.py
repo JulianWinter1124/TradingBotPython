@@ -1,20 +1,18 @@
 import datetime
-import math
 
+import numpy as np
 import pandas as pd
-from keras.preprocessing.sequence import TimeseriesGenerator
+from matplotlib import pyplot as plt
+from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import MinMaxScaler
 
-from bot.data_sequencer import DataSequencer
 from bot_ai import neural
 from util import data_enhancer as de
-from matplotlib import pyplot as plt
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics import mean_squared_error
-import numpy as np
+from util.data_collector_v2 import DataCollector
 
 
 def load_data():
-    #https://machinelearningmastery.com/multivariate-time-series-forecasting-lstms-keras/
+    # https://machinelearningmastery.com/multivariate-time-series-forecasting-lstms-keras/
     df = pd.read_csv('data/BTCUSD300.csv')
     values = df.values
     values = values.astype('float32')
@@ -29,12 +27,12 @@ def load_data():
     n_features = len(df.columns)
     reframed = de.series_to_supervised(scaled_df, n_hours, 0)
     # drop columns we don't want to predict
-    reframed.drop(reframed.columns[np.arange(-n_features+1, 0)], axis=1, inplace=True)
+    reframed.drop(reframed.columns[np.arange(-n_features + 1, 0)], axis=1, inplace=True)
     # TODO
     # Making all series stationary with differencing and seasonal adjustment.
     # Providing more than 1 hour of input time steps.
     values = reframed.values
-    train_index = int(0.8*len(values))
+    train_index = int(0.8 * len(values))
     train = values[:train_index, :]
     test = values[train_index:, :]
     # split into input and outputs
@@ -85,7 +83,7 @@ def load_data():
     plt.show()
 
 
-if __name__ == '__main__':
+def cleaner():
     # df = pd.read_json(
     #     'https://poloniex.com/public?command=returnChartData&currencyPair=USDT_BTC&start=1457073300&end=9999999999&period=300',
     #     convert_dates=False)
@@ -93,8 +91,8 @@ if __name__ == '__main__':
     # df.to_csv('data/BTCUSD300.csv', index=False)
     df = pd.read_csv('data/BTCUSD300.csv')
     df = df.drop(columns=['volume', 'quoteVolume'], axis=1)
-    df = df.tail(150000)#.reset_index(drop=True)
-    scaler = MinMaxScaler(feature_range=(0,1))
+    df = df.tail(150000)  # .reset_index(drop=True)
+    scaler = MinMaxScaler(feature_range=(0, 1))
     scaled_df = pd.DataFrame(scaler.fit_transform(df.values), columns=df.columns)
     n_hours = 20
     n_hours_future = 0
@@ -103,7 +101,7 @@ if __name__ == '__main__':
     reframed_df.drop(reframed_df.columns[np.arange(-n_features + 1, 0)], axis=1, inplace=True)
     reframed = reframed_df.values
 
-    split_index = int(0.8*len(reframed))
+    split_index = int(0.8 * len(reframed))
     train, test = reframed[0:split_index, :], reframed[split_index:, :]
 
     n_obs = n_hours * n_features
@@ -139,9 +137,15 @@ if __name__ == '__main__':
     test_actual = np.concatenate((test_y, test_X), axis=1)
     print(pd.DataFrame(test_pred, columns=df.columns))
     print(pd.DataFrame(test_actual, columns=df.columns))
-    test_pred = pd.DataFrame(scaler.inverse_transform(test_pred), columns = df.columns)
-    test_actual = pd.DataFrame(scaler.inverse_transform(test_actual), columns = df.columns)
+    test_pred = pd.DataFrame(scaler.inverse_transform(test_pred), columns=df.columns)
+    test_actual = pd.DataFrame(scaler.inverse_transform(test_actual), columns=df.columns)
     plt.plot(df['date'].iloc[-len(test_X):], test_pred['close'], label='prediciton')
     plt.plot(df['date'].iloc[-len(test_X):], test_actual['close'], label='actual', linewidth=0.5)
     plt.legend()
     plt.show()
+
+
+if __name__ == '__main__':
+    coll = DataCollector('data', ['USDT_BTC', 'USDT_ETH'], [1405699200, 1405699200], [9999999999, 9999999999],
+                         time_periods=[300, 300], overwrite=True)
+    coll.run_unmodified_loop()

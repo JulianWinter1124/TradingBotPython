@@ -1,13 +1,11 @@
 import os
 
-from keras.callbacks import History, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
-from keras.models import Sequential, load_model
-from keras.layers import Dense, Activation, LSTM, Dropout, LeakyReLU, regularizers
-
 
 class Neural():
 
     def __init__(self, model_name, overwrite = False, units = 10, batch_size = 10, output_size = 1, regularizer = 1.0):
+        from keras.models import Sequential
+        from keras.callbacks import History, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
         self.overwrite = overwrite
         self.units = units  # output dimension
         self.batch_size = batch_size  # how much data is processed at once
@@ -22,6 +20,8 @@ class Neural():
                                                 mode='min')
 
     def load_or_build_model(self, timesteps, nb_features):  # Model structure altered from https://github.com/khuangaf/CryptocurrencyPrediction/blob/master/LSTM.py
+        from keras.models import Sequential, load_model
+        from keras.layers import Dense, Activation, LSTM, Dropout, LeakyReLU, regularizers
         if self.overwrite or not os.path.isfile(self.filepath):  # Is there no existing model?
             self.model = Sequential()
             self.model.add(LSTM(units=self.units, activity_regularizer=regularizers.l1(self.regularizer),
