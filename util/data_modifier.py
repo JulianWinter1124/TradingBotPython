@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import talib  # windows: https://www.lfd.uci.edu/~gohlke/pythonlibs/#ta-lib
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
@@ -17,7 +16,8 @@ def create_test_and_training_data(normalized_data, label_indices=[0], del_column
     test_label = labels[split_index:, :]
     train = train.reshape((train.shape[0], train.shape[1], 1))
     test = test.reshape((test.shape[0], test.shape[1], 1))
-    train_label = train_label.reshape((train_label.shape[0], 1, train_label.shape[1])) #TODO: Change 1 to something else
+    train_label = train_label.reshape(
+        (train_label.shape[0], 1, train_label.shape[1]))  # TODO: Change 1 to something else
     test_label = test_label.reshape((test_label.shape[0], 1, test_label.shape[1]))
     return train, train_label, test, test_label
 
@@ -41,17 +41,16 @@ def normalize_data(data, scaler):
         return data
 
 
-def data_to_supervised(data, n_in=1, n_out=1, dropnan=True, drop_columns_indices=[], label_columns_indices=[0]):
+def data_to_supervised(data, n_in=1, n_out=1, drop_columns_indices=[], label_columns_indices=[0]):
     data = np.delete(data, drop_columns_indices, axis=1)
     cols = list()
     for i in range(n_in, -n_out - 1, -1):
         column = np.roll(data, i, axis=0)
         if i <= 0:
-            column = column[:, label_columns_indices] #The future points may only contain labels
+            column = column[:, label_columns_indices]  # The future points may only contain labels
         cols.append(column)
     agg = np.concatenate(cols, axis=1)
-    if dropnan:
-        agg = agg[n_in:-n_out-1]
+    agg = agg[n_in:-n_out - 1]  # NaN is always dropped
     return agg
 
 
@@ -69,12 +68,12 @@ def add_BBANDS_indicator_to_data(data, close_index=0, timeperiod=5, nbdevup=2, n
     upperband, middleband, lowerband = talib.BBANDS(data[:, close_index], timeperiod=timeperiod, nbdevup=nbdevup,
                                                     nbdevdn=nbdevdn, matype=matype)
     list = (
-    data, np.expand_dims(upperband, axis=1), np.expand_dims(middleband, axis=1), np.expand_dims(lowerband, axis=1))
+        data, np.expand_dims(upperband, axis=1), np.expand_dims(middleband, axis=1), np.expand_dims(lowerband, axis=1))
     return np.concatenate(list, axis=1)
 
 
-def add_OBV_indicator_to_data(data, close_and_volume_index=[0, 5]):  # Volume indicator
-    out = np.expand_dims(talib.OBV(data[:, close_and_volume_index[0]], data[:, close_and_volume_index[1]]), axis=1)
+def add_OBV_indicator_to_data(data, close_index=0, volume_index=6):  # Volume indicator
+    out = np.expand_dims(talib.OBV(data[:, close_index], data[:, volume_index]), axis=1)
     return np.concatenate((data, out), axis=1)
 
 

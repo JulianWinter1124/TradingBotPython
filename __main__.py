@@ -1,4 +1,6 @@
 import datetime
+import logging
+from multiprocessing import Process
 
 import numpy as np
 import pandas as pd
@@ -9,6 +11,7 @@ from sklearn.preprocessing import MinMaxScaler
 from bot_ai import neural
 from util import data_enhancer as de
 from util.data_collector_v2 import DataCollector
+from util.data_processor import DataProcessor
 
 
 def load_data():
@@ -146,6 +149,11 @@ def cleaner():
 
 
 if __name__ == '__main__':
+    logging.getLogger().setLevel(logging.INFO)
     coll = DataCollector('data', ['USDT_BTC', 'USDT_ETH'], [1405699200, 1405699200], [9999999999, 9999999999],
-                         time_periods=[300, 300], overwrite=True)
-    coll.run_unmodified_loop()
+                         time_periods=[300, 300], overwrite=False)
+    proc = DataProcessor(database_filepath=coll.filepath, output_filepath='data/finished_data.hdf5', overwrite=True)
+    p1 = Process(target=coll.run_unmodified_loop)
+    p2 = Process(target=proc.run)
+    p1.start()
+    p2.start()
