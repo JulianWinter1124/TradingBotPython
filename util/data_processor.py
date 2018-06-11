@@ -9,9 +9,10 @@ import numpy as np
 import util.data_modifier as dm
 
 
-class DataProcessor:
+class DataProcessor(Process):
 
     def __init__(self, database_filepath, output_filepath, use_indicators=True, use_scaling=True):
+        super(DataProcessor, self).__init__()
         self.use_scaling = use_scaling
         self.use_indicators = use_indicators
         self.output_filepath = output_filepath

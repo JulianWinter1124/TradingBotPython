@@ -10,11 +10,12 @@ import pandas as pd
 from definitions import get_absolute_path
 
 
-class DataCollector(): #TODO: drop columns
+class DataCollector(Process): #TODO: drop columns
 
     def __init__(self, BASE_FILEPATH='data', currency_pairs=['BTC_USDT'], start_dates=[1405699200],
                  end_dates=[9999999999], time_periods=[300], overwrite=False, log_level=logging.INFO):
         #super(DataCollector, self).__init__()
+        super(DataCollector, self).__init__()
         logging.getLogger().setLevel(log_level)
         self.filepath = get_absolute_path(BASE_FILEPATH + '/pair_data_unmodified.h5')
         self.BASE_URL = 'https://poloniex.com/public?command=returnChartData'
@@ -51,7 +52,7 @@ class DataCollector(): #TODO: drop columns
             del df
             time.sleep(time_period / 10)  # TODO: find good time
 
-    def run_unmodified_loop(self):
+    def run(self):
         n = min(len(self.currency_pairs), 6)  # 6 processes at maximum
         q = Queue()
         processes = []
