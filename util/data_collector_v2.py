@@ -1,4 +1,4 @@
-import http
+from urllib.error import URLError, HTTPError
 import logging
 import os
 import time
@@ -14,6 +14,7 @@ class DataCollector(): #TODO: drop columns
 
     def __init__(self, BASE_FILEPATH='data', currency_pairs=['BTC_USDT'], start_dates=[1405699200],
                  end_dates=[9999999999], time_periods=[300], overwrite=False, log_level=logging.INFO):
+        #super(DataCollector, self).__init__()
         logging.getLogger().setLevel(log_level)
         self.filepath = get_absolute_path(BASE_FILEPATH + '/pair_data_unmodified.h5')
         self.BASE_URL = 'https://poloniex.com/public?command=returnChartData'
@@ -28,7 +29,6 @@ class DataCollector(): #TODO: drop columns
         self.create_h5py_file()
         self.create_databases()
         self.update_latest_dates()
-        self.stop = False
 
     def mp_worker(self, q, pair_index):
         pair, start_date, last_date, end_date, time_period = self.currency_pairs[pair_index], self.start_dates[
@@ -37,7 +37,7 @@ class DataCollector(): #TODO: drop columns
             url = self.build_url(pair, last_date, end_date, time_period)
             try:
                 df = pd.read_json(url, convert_dates=False)  # TODO: catch errors
-            except http.client.HTTPException as e:
+            except (HTTPError, URLError) as e:
                 logging.error('error retrieving data. Trying again in 5 seconds.')
                 time.sleep(5)
                 continue
@@ -65,6 +65,8 @@ class DataCollector(): #TODO: drop columns
             dset = file[str(pair)]
             dset.resize((dset.shape[0] + data.shape[0]), axis=0)
             dset[-data.shape[0]:] = data
+            dset.flush()
+            file.flush()
             file.close()
             print('Saved data to file for pair[' + pair + ']')
 
@@ -75,7 +77,7 @@ class DataCollector(): #TODO: drop columns
                 print('Pair: ' + pair + 'already exists in' + str(file) + '...continuing')
             else:
                 print('Pair: ' + pair + 'was not found in' + str(file) + '...creating new dataset')
-                dset = file.create_dataset(pair, (1, 8), maxshape=(None, None))
+                dset = file.create_dataset(pair, (0, 8), maxshape=(None, 8))
                 dset.flush()
         file.swmr_mode = True
 

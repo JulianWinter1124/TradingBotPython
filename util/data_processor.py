@@ -11,11 +11,10 @@ import util.data_modifier as dm
 
 class DataProcessor:
 
-    def __init__(self, database_filepath, output_filepath, use_indicators=True, use_scaling=True, overwrite=False):
+    def __init__(self, database_filepath, output_filepath, use_indicators=True, use_scaling=True):
         self.use_scaling = use_scaling
         self.use_indicators = use_indicators
         self.output_filepath = output_filepath
-        self.overwrite = overwrite
         self.database_filepath = database_filepath
         self.create_h5py_output_file()
         self.create_databases()
@@ -41,20 +40,15 @@ class DataProcessor:
             p.start()
         while True:
             dset_name, data = q.get()
-            print(dset_name + ' received. putting in file')
             file = self.read_h5py_output_file()
-            print('hi0')
             dset = file[dset_name]
-            print('hi1')
-            dset.resize((dset.shape[0] + data.shape[0]), axis=0)
-            print('hi2')
             dset.resize(max(dset.shape[1], data.shape[1]), axis=1)
-            print('hi3')
+            dset.resize((dset.shape[0] + data.shape[0]), axis=0)
             dset[-data.shape[0]:] = data
-            print('hi4')
+            file.flush()
             file.close()
-            print('hi5')
-            print('Saved modified data to file for pair[' + dset_name + ']')
+            print('Saved modified data with shape', data.shape, 'to file for pair[' + dset_name + ']')
+            del data
 
     def read_database_and_produce_modified_data_loop(self, queue, dset_name):
         """
@@ -63,16 +57,17 @@ class DataProcessor:
         :param queue: the queue in which finished data will be put
         :return: None
         """
-        database = self.read_h5py_database_file()
-        dset = database[dset_name]
         print("new Process started listening on dataset[" + dset_name + ']')
         n_completed = 0  # the number of finished modified rows, may self
         while True:
+            database = self.read_h5py_database_file()
+            dset = database[dset_name]
             selection_array = dset[n_completed:, :]  # important datas
             if len(selection_array) <= 30 + 30 + 2:  # max(timeperiod) in out
-                print('no new data found for', dset_name, '. looking again in 20 second')
+                print('not enough data for timeseries calculation', dset_name, '. looking again in 20 second')
                 del selection_array
                 time.sleep(20)
+                database.close()
                 continue
             if self.use_indicators:  # adding indicators
                 selection_array = np.array(selection_array, dtype='f8')
@@ -86,13 +81,11 @@ class DataProcessor:
             timeseries_data = dm.data_to_supervised(selection_array, n_in=30, n_out=2, drop_columns_indices=[7],
                                                     label_columns_indices=[0])
             n_completed += len(timeseries_data)
-            print("Data modification finished")
+            print("Data modification finished for pair[" + dset_name + '].')
             queue.put((dset_name, timeseries_data))
             del selection_array
             del timeseries_data
-
-    def load_from_config(self):
-        pass
+            database.close()
 
     def create_h5py_output_file(self):
         if not os.path.exists(os.path.dirname(self.output_filepath)):
@@ -100,12 +93,8 @@ class DataProcessor:
                 os.makedirs(os.path.dirname(self.output_filepath))
             except OSError as exc:  # Guard against race condition
                 logging.exception(exc)
-        if self.overwrite:
-            print("Overwriting output file")
-            return h5py.File(self.output_filepath, 'w', libver='latest')
-        else:
-            print("Opening or creating ouput file")
-            return h5py.File(self.output_filepath, 'a', libver='latest')
+        print("Overwriting output file")
+        return h5py.File(self.output_filepath, 'w', libver='latest') #Always overwrite because databse might change
 
     def create_databases(self):
         file = self.read_h5py_output_file()
@@ -115,6 +104,6 @@ class DataProcessor:
                 logging.info('Pair: ' + pair + 'already exists in' + str(file) + '...continuing')
             else:
                 logging.info('Pair: ' + pair + 'was not found in' + str(file) + '...creating new dataset')
-                dset = file.create_dataset(pair, (1, 8), maxshape=(None, None))
+                dset = file.create_dataset(pair, shape=(0, 1), maxshape=(None, None)) #chunk param is really important
                 dset.flush()
         file.swmr_mode = True

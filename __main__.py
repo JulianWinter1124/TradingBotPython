@@ -151,8 +151,8 @@ def cleaner():
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
     coll = DataCollector('data', ['USDT_BTC', 'USDT_ETH'], [1405699200, 1405699200], [9999999999, 9999999999],
-                         time_periods=[300, 300], overwrite=False)
-    proc = DataProcessor(database_filepath=coll.filepath, output_filepath='data/finished_data.hdf5', overwrite=True)
+                         time_periods=[300, 300], overwrite=True)
+    proc = DataProcessor(database_filepath='data/pair_data_unmodified.h5', output_filepath='data/finished_data.h5')
     p1 = Process(target=coll.run_unmodified_loop)
     p2 = Process(target=proc.run)
     p1.start()
