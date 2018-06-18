@@ -14,8 +14,8 @@ def create_test_and_training_data(normalized_data, label_indices=[0], del_column
     test = train_test[split_index:, :]
     train_label = labels[:split_index, :]
     test_label = labels[split_index:, :]
-    train = train.reshape((train.shape[0], train.shape[1], 1))
-    test = test.reshape((test.shape[0], test.shape[1], 1))
+    train = train.reshape((train.shape[0], 1, train.shape[1]))
+    test = test.reshape((test.shape[0], 1, test.shape[1]))
     train_label = train_label.reshape(
         (train_label.shape[0], 1, train_label.shape[1]))  # TODO: Change 1 to something else
     test_label = test_label.reshape((test_label.shape[0], 1, test_label.shape[1]))

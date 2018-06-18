@@ -11,14 +11,27 @@ import util.data_modifier as dm
 
 class DataProcessor(Process):
 
-    def __init__(self, database_filepath, output_filepath, use_indicators=True, use_scaling=True):
+    def __init__(self, callback, database_filepath, output_filepath, use_indicators=True, use_scaling=True, drop_data_columns_indices=[7], n_in=30, n_out=2): #TODO: param list of indicators with their paramas!
         super(DataProcessor, self).__init__()
+        self.n_in = n_in
+        self.n_out = n_out
         self.use_scaling = use_scaling
+        self.drop_data_columns_indices = drop_data_columns_indices
         self.use_indicators = use_indicators
         self.output_filepath = output_filepath
         self.database_filepath = database_filepath
+        self.callback = callback
         self.create_h5py_output_file()
         self.create_databases()
+
+    def get_number_of_features(self):
+        #data = self.read_h5py_database_file() #TODO: alles
+        #dset = data[data.keys()]
+        #
+        if self.use_indicators:
+            return 6 + 8 - len(self.drop_data_columns_indices) # +dset.shape[1]
+        else:
+            return 8 - len(self.drop_data_columns_indices) # +dset.shape[1]
 
     def read_h5py_database_file(self):
         """
@@ -50,6 +63,7 @@ class DataProcessor(Process):
             file.close()
             print('Saved modified data with shape', data.shape, 'to file for pair[' + dset_name + ']')
             del data
+            self.callback()
 
     def read_database_and_produce_modified_data_loop(self, queue, dset_name):
         """
@@ -60,6 +74,7 @@ class DataProcessor(Process):
         """
         print("new Process started listening on dataset[" + dset_name + ']')
         n_completed = 0  # the number of finished modified rows, may self
+        min_max_scaler = None
         while True:
             database = self.read_h5py_database_file()
             dset = database[dset_name]
@@ -72,14 +87,17 @@ class DataProcessor(Process):
                 continue
             if self.use_indicators:  # adding indicators
                 selection_array = np.array(selection_array, dtype='f8')
-                selection_array = dm.add_SMA_indicator_to_data(selection_array, close_index=0, timeperiod=30)
-                selection_array = dm.add_BBANDS_indicator_to_data(selection_array, close_index=0)
-                selection_array = dm.add_RSI_indicator_to_data(selection_array, close_index=0)
-                selection_array = dm.add_OBV_indicator_to_data(selection_array, close_index=0, volume_index=6)
+                selection_array = dm.add_SMA_indicator_to_data(selection_array, close_index=0, timeperiod=30) #1 column
+                selection_array = dm.add_BBANDS_indicator_to_data(selection_array, close_index=0) #3 columns
+                selection_array = dm.add_RSI_indicator_to_data(selection_array, close_index=0) #1 column
+                selection_array = dm.add_OBV_indicator_to_data(selection_array, close_index=0, volume_index=6) #1column
                 selection_array = dm.drop_NaN_rows(selection_array)
             if self.use_scaling:
-                selection_array, min_max_scaler = dm.normalize_data_MinMax(selection_array)
-            timeseries_data = dm.data_to_supervised(selection_array, n_in=30, n_out=2, drop_columns_indices=[7],
+                if min_max_scaler is None:
+                    selection_array, min_max_scaler = dm.normalize_data_MinMax(selection_array)
+                else:
+                    selection_array = dm.normalize_data(selection_array, min_max_scaler)
+            timeseries_data = dm.data_to_supervised(selection_array, n_in=self.n_in, n_out=self.n_out, drop_columns_indices=self.drop_data_columns_indices,
                                                     label_columns_indices=[0])
             n_completed += len(timeseries_data)
             print("Data modification finished for pair[" + dset_name + '].')
@@ -108,3 +126,6 @@ class DataProcessor(Process):
                 dset = file.create_dataset(pair, shape=(0, 1), maxshape=(None, None)) #chunk param is really important
                 dset.flush()
         file.swmr_mode = True
+
+    def callback_func(self):
+        print('you called?')

@@ -41,5 +41,9 @@ class Neural():
         # model.save(self.filepath) # should be done by ModelCheckpoint
         return history
 
+    def train_model_generator(self, generator, steps_per_epoch, epochs, use_multiprocessing=False, workers=2):
+        history = self.model.fit_generator(generator=generator, steps_per_epoch=steps_per_epoch, epochs=epochs, use_multiprocessing=use_multiprocessing, workers=workers)
+        return history
+
     def predict(self, data):
         return self.model.predict(data)
