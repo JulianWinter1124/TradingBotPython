@@ -32,7 +32,7 @@ class DataCollector(Process): #TODO: drop columns
         self.create_databases()
         self.update_latest_dates()
 
-    def mp_worker(self, q, pair_index):
+    def mp_worker(self, q, pair_index): #TODO: threads in future
         pair, start_date, last_date, end_date, time_period = self.currency_pairs[pair_index], self.start_dates[
             pair_index], self.last_dates[pair_index], self.end_dates[pair_index], self.time_periods[pair_index]
         while True:
@@ -63,7 +63,6 @@ class DataCollector(Process): #TODO: drop columns
             p.start()
         while True:  # LUL
             pair, data = q.get() #  This is a stopping method
-            self.callback()
             file = self.read_h5py_file()
             dset = file[str(pair)]
             dset.resize((dset.shape[0] + data.shape[0]), axis=0)
@@ -72,6 +71,7 @@ class DataCollector(Process): #TODO: drop columns
             file.flush()
             file.close()
             print('Saved data to file for pair[' + pair + ']')
+            self.callback(pair)
 
     def create_databases(self):
         file = self.read_h5py_file()

@@ -82,10 +82,9 @@ def cleaner():
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
     proc = DataProcessor(callback=None, database_filepath='data/pair_data_unmodified.h5', output_filepath='data/finished_data.h5')
-    coll = DataCollector(None, 'data', ['USDT_BTC', 'USDT_ETH'], [1405699200, 1405699200], [9999999999, 9999999999],
+    coll = DataCollector(proc.callback_func, 'data', ['USDT_BTC', 'USDT_ETH'], [1405699200, 1405699200], [9999999999, 9999999999],
                          time_periods=[300, 300], overwrite=False)
     coll.start()
-    proc.start()
 
     gen = DataGenerator('data/finished_data.h5')
     time.sleep(100) #TODO: replace with somethin useful

@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+from collections import defaultdict
 from multiprocessing import Queue, Process
 
 import h5py
@@ -9,10 +10,9 @@ import numpy as np
 import util.data_modifier as dm
 
 
-class DataProcessor(Process):
+class DataProcessor():
 
     def __init__(self, callback, database_filepath, output_filepath, use_indicators=True, use_scaling=True, drop_data_columns_indices=[7], n_in=30, n_out=2): #TODO: param list of indicators with their paramas!
-        super(DataProcessor, self).__init__()
         self.n_in = n_in
         self.n_out = n_out
         self.use_scaling = use_scaling
@@ -22,6 +22,8 @@ class DataProcessor(Process):
         self.database_filepath = database_filepath
         self.callback = callback
         self.create_h5py_output_file()
+        self.min_max_scaler = {}
+        self.n_completed = defaultdict(int)
         self.create_databases()
 
     def get_number_of_features(self):
@@ -43,68 +45,51 @@ class DataProcessor(Process):
     def read_h5py_output_file(self):
         return h5py.File(self.output_filepath, 'a', libver='latest')
 
-    def run(self):
-        print("Data Processor has started")
-        database_file = self.read_h5py_database_file()
-        q = Queue()
-        processes = []
-        for dset_name in database_file.keys():
-            p = Process(target=self.read_database_and_produce_modified_data_loop, args=(q, dset_name,))
-            processes.append(p)
-            p.start()
-        while True:
-            dset_name, data = q.get()
-            file = self.read_h5py_output_file()
-            dset = file[dset_name]
-            dset.resize(max(dset.shape[1], data.shape[1]), axis=1)
-            dset.resize((dset.shape[0] + data.shape[0]), axis=0)
-            dset[-data.shape[0]:] = data
-            file.flush()
-            file.close()
-            print('Saved modified data with shape', data.shape, 'to file for pair[' + dset_name + ']')
-            del data
-            self.callback()
-
-    def read_database_and_produce_modified_data_loop(self, queue, dset_name):
+    def read_database_and_produce_modified_data(self, dset_name):
         """
         Reads the databse continuesly and makes the data ready for training. All data that is ready is put into queue
         :param dset_name: the specific dataset the method should listen to
         :param queue: the queue in which finished data will be put
         :return: None
         """
-        print("new Process started listening on dataset[" + dset_name + ']')
-        n_completed = 0  # the number of finished modified rows, may self
-        min_max_scaler = None
-        while True:
-            database = self.read_h5py_database_file()
-            dset = database[dset_name]
-            selection_array = dset[n_completed:, :]  # important datas
-            if len(selection_array) <= 30 + 30 + 2:  # max(timeperiod) in out
-                print('not enough data for timeseries calculation', dset_name, '. looking again in 20 second')
-                del selection_array
-                time.sleep(20)
-                database.close()
-                continue
-            if self.use_indicators:  # adding indicators
-                selection_array = np.array(selection_array, dtype='f8')
-                selection_array = dm.add_SMA_indicator_to_data(selection_array, close_index=0, timeperiod=30) #1 column
-                selection_array = dm.add_BBANDS_indicator_to_data(selection_array, close_index=0) #3 columns
-                selection_array = dm.add_RSI_indicator_to_data(selection_array, close_index=0) #1 column
-                selection_array = dm.add_OBV_indicator_to_data(selection_array, close_index=0, volume_index=6) #1column
-                selection_array = dm.drop_NaN_rows(selection_array)
-            if self.use_scaling:
-                if min_max_scaler is None:
-                    selection_array, min_max_scaler = dm.normalize_data_MinMax(selection_array)
-                else:
-                    selection_array = dm.normalize_data(selection_array, min_max_scaler)
-            timeseries_data = dm.data_to_supervised(selection_array, n_in=self.n_in, n_out=self.n_out, drop_columns_indices=self.drop_data_columns_indices,
-                                                    label_columns_indices=[0])
-            n_completed += len(timeseries_data)
-            print("Data modification finished for pair[" + dset_name + '].')
-            queue.put((dset_name, timeseries_data))
+        print('Processing new data')
+        database = self.read_h5py_database_file()
+        dset = database[dset_name]
+        selection_array = dset[self.n_completed[dset_name]:, :]  # important datas
+        if len(selection_array) <= 30 + 30 + 2:  # max(timeperiod) in out
+            print('not enough data for timeseries calculation', dset_name, '. Waiting for next call')
             del selection_array
-            del timeseries_data
             database.close()
+            return False
+        if self.use_indicators:  # adding indicators
+            selection_array = np.array(selection_array, dtype='f8')
+            selection_array = dm.add_SMA_indicator_to_data(selection_array, close_index=0, timeperiod=30) #1 column
+            selection_array = dm.add_BBANDS_indicator_to_data(selection_array, close_index=0) #3 columns
+            selection_array = dm.add_RSI_indicator_to_data(selection_array, close_index=0) #1 column
+            selection_array = dm.add_OBV_indicator_to_data(selection_array, close_index=0, volume_index=6) #1column
+            selection_array = dm.drop_NaN_rows(selection_array)
+        if self.use_scaling:
+            if not dset_name in self.min_max_scaler:
+                selection_array, self.min_max_scaler[dset_name] = dm.normalize_data_MinMax(selection_array)
+            else:
+                selection_array = dm.normalize_data(selection_array, self.min_max_scaler[dset_name])
+        timeseries_data = dm.data_to_supervised(selection_array, n_in=self.n_in, n_out=self.n_out, drop_columns_indices=self.drop_data_columns_indices,
+                                                label_columns_indices=[0])
+        self.n_completed[dset_name] += len(timeseries_data)
+        print("Data modification finished for pair[" + dset_name + '].')
+        file = self.read_h5py_output_file()
+        dset = file[dset_name]
+        dset.resize(max(dset.shape[1], timeseries_data.shape[1]), axis=1)
+        dset.resize((dset.shape[0] + timeseries_data.shape[0]), axis=0)
+        dset[-timeseries_data.shape[0]:] = timeseries_data
+        file.flush()
+        file.close()
+        print('Saved modified data with shape', timeseries_data.shape, 'to file for pair[' + dset_name + ']')
+        del selection_array
+        del timeseries_data
+        database.close()
+        self.callback()
+        return True
 
     def create_h5py_output_file(self):
         if not os.path.exists(os.path.dirname(self.output_filepath)):
@@ -127,5 +112,7 @@ class DataProcessor(Process):
                 dset.flush()
         file.swmr_mode = True
 
-    def callback_func(self):
-        print('you called?')
+    def callback_func(self, updated_dset_name):
+        print('Data processor for [' +updated_dset_name+'] was called')
+        p = Process(target=self.read_database_and_produce_modified_data, args=(updated_dset_name, ))
+        p.start()
