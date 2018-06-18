@@ -11,7 +11,7 @@ import util.data_modifier as dm
 
 class DataProcessor(Process):
 
-    def __init__(self, callback, database_filepath, output_filepath, use_indicators=True, use_scaling=True, drop_data_columns_indices=[7], n_in=30, n_out=2): #TODO: param list of indicators with their paramas!
+    def __init__(self, database_filepath, output_filepath, use_indicators=True, use_scaling=True, drop_data_columns_indices=[7], n_in=30, n_out=2): #TODO: param list of indicators with their paramas!
         super(DataProcessor, self).__init__()
         self.n_in = n_in
         self.n_out = n_out
@@ -20,7 +20,6 @@ class DataProcessor(Process):
         self.use_indicators = use_indicators
         self.output_filepath = output_filepath
         self.database_filepath = database_filepath
-        self.callback = callback
         self.create_h5py_output_file()
         self.create_databases()
 
@@ -63,7 +62,6 @@ class DataProcessor(Process):
             file.close()
             print('Saved modified data with shape', data.shape, 'to file for pair[' + dset_name + ']')
             del data
-            self.callback()
 
     def read_database_and_produce_modified_data_loop(self, queue, dset_name):
         """
@@ -76,14 +74,15 @@ class DataProcessor(Process):
         n_completed = 0  # the number of finished modified rows, may self
         min_max_scaler = None
         while True:
+            # event[dset_name].wait()
             database = self.read_h5py_database_file()
             dset = database[dset_name]
             selection_array = dset[n_completed:, :]  # important datas
             if len(selection_array) <= 30 + 30 + 2:  # max(timeperiod) in out
-                print('not enough data for timeseries calculation', dset_name, '. looking again in 20 second')
+                print('not enough data for timeseries calculation', dset_name, '. Waiting for next event')
                 del selection_array
-                time.sleep(20)
                 database.close()
+                time.sleep(20)
                 continue
             if self.use_indicators:  # adding indicators
                 selection_array = np.array(selection_array, dtype='f8')
@@ -126,6 +125,5 @@ class DataProcessor(Process):
                 dset = file.create_dataset(pair, shape=(0, 1), maxshape=(None, None)) #chunk param is really important
                 dset.flush()
         file.swmr_mode = True
-
-    def callback_func(self):
-        print('you called?')
+    # def callback_func(self, dset_name):
+    #     event[dset_name].set()

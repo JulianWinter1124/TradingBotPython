@@ -48,3 +48,11 @@ class DataGenerator:
             s_data, s_labels = selection[:, :n_in * n_features], selection[:, n_in * n_features:]
             s_data = s_data.reshape((s_data.shape[0], n_in, n_features))
             yield (s_data, s_labels)
+
+    def read_data(self, dset_name, n_in, n_features):
+        file = self.read_finished_data_file()
+        dset = file[dset_name]
+        print(dset.shape)
+        s_data, s_labels = dset[:, :n_in * n_features], dset[:, n_in * n_features:]
+        s_data = s_data.reshape((s_data.shape[0], n_in, n_features))
+        return s_data, s_labels

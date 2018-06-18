@@ -3,7 +3,8 @@ import os
 
 class Neural():
 
-    def __init__(self, model_name, overwrite = False, units = 10, batch_size = 10, output_size = 1, regularizer = 1.0):
+    def __init__(self, model_name, overwrite = False, units = 10, batch_size = 10, output_size = 1, regularizer = 1.0,
+                 activation='tanh'):
         from keras.models import Sequential
         from keras.callbacks import History, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
         self.overwrite = overwrite
@@ -13,6 +14,7 @@ class Neural():
         self.filepath = 'data/training/LSTM_' + model_name + '.h5'
         self.output_size = output_size
         self.model: Sequential = None
+        self.activation = activation
         # From https://www.kaggle.com/cbryant/keras-cnn-with-pseudolabeling-0-1514-lb/ might need tuning
         self.earlyStopping = EarlyStopping(monitor='val_loss', patience=10, verbose=0, mode='min')
         self.mcp_save = ModelCheckpoint(self.filepath, save_best_only=True, monitor='val_loss', mode='min', verbose=1)
@@ -26,7 +28,7 @@ class Neural():
             self.model = Sequential()
             self.model.add(LSTM(units=self.units, activity_regularizer=regularizers.l1(self.regularizer),
                            input_shape=(timesteps, nb_features), return_sequences=False))
-            self.model.add(Activation('tanh'))
+            self.model.add(Activation(self.activation))
             self.model.add(Dropout(0.2))
             self.model.add(Dense(self.output_size))
             self.model.add(LeakyReLU())
@@ -47,3 +49,6 @@ class Neural():
 
     def predict(self, data):
         return self.model.predict(data)
+
+    def predict_on_batch(self, data):
+        return self.model.predict_on_batch(data)

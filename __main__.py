@@ -81,8 +81,8 @@ def cleaner():
 
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
-    proc = DataProcessor(callback=None, database_filepath='data/pair_data_unmodified.h5', output_filepath='data/finished_data.h5')
-    coll = DataCollector(None, 'data', ['USDT_BTC', 'USDT_ETH'], [1405699200, 1405699200], [9999999999, 9999999999],
+    proc = DataProcessor(database_filepath='data/pair_data_unmodified.h5', output_filepath='data/finished_data.h5', use_scaling=False)
+    coll = DataCollector('data', ['USDT_BTC', 'USDT_ETH'], [1503446400, 1503446400], [9999999999, 9999999999],
                          time_periods=[300, 300], overwrite=False)
     coll.start()
     proc.start()
@@ -95,9 +95,17 @@ if __name__ == '__main__':
     n_features = proc.get_number_of_features() # TODO: proc.get_features
     #generator = gen.generate_data_for_dataset('USDT_BTC', batch_size=64, buffer_size=50000, n_in=n_in, n_features=n_features)
     generator = gen.generate('USDT_BTC', batch_size=64, n_in=n_in, n_features=n_features)
-    neur = Neural('BTC', overwrite=True, units=10, batch_size=64, output_size=1+n_out)
+    neur = Neural('BTC', overwrite=True, units=10, batch_size=64, output_size=1+n_out, activation='sigmoid')
     model = neur.load_or_build_model(n_in, n_features) #TODO: put in neural
-    history = neur.train_model_generator(generator, 100000, 10)
-    pred = neur.predict()
+    #history = neur.train_model_generator(generator, 100000, 10) #generator method
+    data, labels = gen.read_data('USDT_BTC', n_in=n_in, n_features=n_features)
+    print(labels)
+    split_i = int(len(data)*0.9)
+    print(data.shape)
+    history = neur.train_model(data[0:split_i, :], labels[0:split_i, :], data[split_i:, :], labels[split_i:, :], epochs=100) #'normal' method
+    pred = neur.predict(data[split_i:, :])
+    print(pred)
+    pred = neur.predict_on_batch(data[split_i:, :])
+    print(pred)
 
 

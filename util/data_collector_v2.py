@@ -2,7 +2,7 @@ from urllib.error import URLError, HTTPError
 import logging
 import os
 import time
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, Event
 
 import h5py
 import pandas as pd
@@ -12,14 +12,12 @@ from definitions import get_absolute_path
 
 class DataCollector(Process): #TODO: drop columns
 
-    def __init__(self, callback=None, BASE_FILEPATH='data', currency_pairs=['BTC_USDT'], start_dates=[1405699200],
+    def __init__(self, BASE_FILEPATH='data', currency_pairs=['BTC_USDT'], start_dates=[1405699200],
                  end_dates=[9999999999], time_periods=[300], overwrite=False, log_level=logging.INFO):
-        #super(DataCollector, self).__init__()
         super(DataCollector, self).__init__()
         logging.getLogger().setLevel(log_level)
         self.filepath = get_absolute_path(BASE_FILEPATH + '/pair_data_unmodified.h5')
         self.BASE_URL = 'https://poloniex.com/public?command=returnChartData'
-        self.callback = callback
         self.time_periods = time_periods
         self.currency_pairs = currency_pairs
         self.start_dates = start_dates
@@ -61,9 +59,8 @@ class DataCollector(Process): #TODO: drop columns
             p = Process(target=self.mp_worker, args=(q, i,))
             processes.append(p)
             p.start()
-        while True:  # LUL
+        while True:
             pair, data = q.get() #  This is a stopping method
-            self.callback()
             file = self.read_h5py_file()
             dset = file[str(pair)]
             dset.resize((dset.shape[0] + data.shape[0]), axis=0)
