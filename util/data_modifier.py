@@ -24,12 +24,14 @@ def create_test_and_training_data(normalized_data, label_indices=[0], del_column
 
 def normalize_data_MinMax(data):
     scaler = MinMaxScaler()
+    print('scaler fit on data with shape:', data.shape)
     data = scaler.fit_transform(data)
     return data, scaler
 
 
 def normalize_data_Standard(data):
     scaler = StandardScaler()
+    print('scaler fit on data with shape:', data.shape)
     data = scaler.fit_transform(data)
     return data, scaler
 

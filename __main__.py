@@ -1,7 +1,7 @@
 import datetime
 import logging
 import time
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 
 import numpy as np
 import pandas as pd
@@ -81,31 +81,38 @@ def cleaner():
 
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
-    proc = DataProcessor(database_filepath='data/pair_data_unmodified.h5', output_filepath='data/finished_data.h5', use_scaling=False)
-    coll = DataCollector('data', ['USDT_BTC', 'USDT_ETH'], [1503446400, 1503446400], [9999999999, 9999999999],
+
+    n_in = 20 #TODO: get from processor
+    n_out = 2
+    q = Queue()
+    proc = DataProcessor(queue=q, database_filepath='data/pair_data_unmodified.h5', output_filepath='data/finished_data.h5', use_scaling=True, use_indicators=True, n_in=n_in, n_out=n_out)
+    coll = DataCollector('data/', ['USDT_BTC', 'USDT_ETH'], [1503446400, 1503446400], [9999999999, 9999999999],
                          time_periods=[300, 300], overwrite=False)
     coll.start()
     proc.start()
 
     gen = DataGenerator('data/finished_data.h5')
-    time.sleep(100) #TODO: replace with somethin useful
+    time.sleep(30) #TODO: replace with somethin useful
 
-    n_in = 30 #TODO: get from processor
-    n_out=2
     n_features = proc.get_number_of_features() # TODO: proc.get_features
-    #generator = gen.generate_data_for_dataset('USDT_BTC', batch_size=64, buffer_size=50000, n_in=n_in, n_features=n_features)
     generator = gen.generate('USDT_BTC', batch_size=64, n_in=n_in, n_features=n_features)
-    neur = Neural('BTC', overwrite=True, units=10, batch_size=64, output_size=1+n_out, activation='sigmoid')
-    model = neur.load_or_build_model(n_in, n_features) #TODO: put in neural
+    neur = Neural('BTC', overwrite=False, units=300, batch_size=64, output_size=1+n_out, activation='sigmoid')
+    model = neur.load_or_build_model_2(n_in=n_in, n_out=n_out, n_features=n_features, layer_units=[30, 20, 10], activation_function='linear', loss_function='mse') #TODO: put in neural
+    #neur.plot_model_to_file('model.png', True, True)
+    #model = neur.load_or_build_model(n_in, n_features)
     #history = neur.train_model_generator(generator, 100000, 10) #generator method
     data, labels = gen.read_data('USDT_BTC', n_in=n_in, n_features=n_features)
-    print(labels)
     split_i = int(len(data)*0.9)
-    print(data.shape)
-    history = neur.train_model(data[0:split_i, :], labels[0:split_i, :], data[split_i:, :], labels[split_i:, :], epochs=100) #'normal' method
-    pred = neur.predict(data[split_i:, :])
-    print(pred)
-    pred = neur.predict_on_batch(data[split_i:, :])
-    print(pred)
+    history = neur.train_model(data[0:split_i, :], labels[0:split_i, :], data[split_i:, :], labels[split_i:, :], epochs=1, shuffle=True) #'normal' method
+    pred = neur.predict(data)
+    print('actual\n', labels)
+    print('prediction:\n', pred)
+    print(labels[split_i:, :].shape, pred.shape)
+    concatenated = np.column_stack((data.reshape((data.shape[0], n_in*n_features))[split_i:, -n_features:], pred[:, 0]))
+    print(concatenated.shape)
+    scaler = q.get()
+    print(scaler.inverse_transform(concatenated))
+    coll.terminate()
+    proc.terminate()
 
 
