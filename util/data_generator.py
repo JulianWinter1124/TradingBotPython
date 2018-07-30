@@ -9,13 +9,25 @@ class DataGenerator:
     def __init__(self, finished_data_filepath='data/finished_data.h5'):
         self.finished_data_filepath = finished_data_filepath
 
-    def read_finished_data_file(self):
+    def _read_finished_data_file(self):
         return h5py.File(self.finished_data_filepath, 'r', libver='latest')
 
-    def generate_data_for_dataset(self, dset_name, batch_size, buffer_size, n_in, n_features):
+    def _read_file(self, filename):
+        return h5py.File(filename, 'r', libver='latest')
+
+
+    def create_data_generator_buffered(self, dset_name, batch_size, buffer_size, n_in, n_features):
+        """
+        Creates a Python generator for finished_data.h5 to use in keras training methods. This version preloads data into memory to reduce the times of loading from hard drive
+        :param dset_name: the pair/dataset name to read from
+        :param batch_size: the desired batch size
+        :param buffer_size: the size of buffer. Higher = faster but more data is loaded into RAM
+        :param n_in: timesteps back in past
+        :param n_features: feature number of data
+        """
         inner_i = 0 #The position in the buffer
         buffer_start = 0 #the index in the dataset where the buffer is starting
-        file = self.read_finished_data_file()
+        file = self._read_finished_data_file()
         dset = file[dset_name]
         assert batch_size < buffer_size < len(dset)
         buffer = dset[buffer_start:buffer_start+buffer_size].copy()
@@ -34,9 +46,17 @@ class DataGenerator:
             s_data = s_data.reshape((s_data.shape[0], n_in, n_features))
             yield(s_data, s_labels)
 
-    def generate(self, dset_name, batch_size, n_in, n_features):
+
+    def create_data_generator(self, dset_name, batch_size, n_in, n_features):
+        """
+        Creates a Python generator for finished_data.h5 to use in keras training methods. Unbuffered version
+        :param dset_name:
+        :param batch_size:
+        :param n_in:
+        :param n_features:
+        """
         i = 0
-        file = self.read_finished_data_file()
+        file = self._read_finished_data_file()
         dset = file[dset_name]
         n = len(dset)
         assert batch_size < n
@@ -49,10 +69,22 @@ class DataGenerator:
             s_data = s_data.reshape((s_data.shape[0], n_in, n_features))
             yield (s_data, s_labels)
 
-    def read_data(self, dset_name, n_in, n_features):
-        file = self.read_finished_data_file()
+    def read_data_and_labels_from_finished_data_file(self, dset_name, n_in, n_features):
+        """
+        loads ALL data from a dataset in finished_data.h5 to memeory and returns it
+        :param dset_name:
+        :param n_in:
+        :param n_features:
+        :return:
+        """
+        file = self._read_finished_data_file()
         dset = file[dset_name]
         print(dset.shape)
         s_data, s_labels = dset[:, :n_in * n_features], dset[:, n_in * n_features:]
         s_data = s_data.reshape((s_data.shape[0], n_in, n_features))
         return s_data, s_labels
+
+    def read_data_from_database_file(self, dset_name):
+        file = self._read_file('data/pair_data_unmodified.h5')
+        dset = file[dset_name]
+        return dset[:, :]

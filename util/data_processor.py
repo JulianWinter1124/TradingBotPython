@@ -24,32 +24,14 @@ class DataProcessor(Process):
         self.database_filepath = database_filepath
         self._scaler = None
         self.create_h5py_output_file()
-        self.create_databases()
-
-    def get_number_of_features(self):
-        #data = self.read_h5py_database_file() #TODO: indicator calc
-        #dset = data[data.keys()]
-        #
-        if self.use_indicators:
-            return 6 + 8 - len(self.drop_data_columns_indices) # +dset.shape[1]
-        else:
-            return 8 - len(self.drop_data_columns_indices) # +dset.shape[1]
-
-    def get_data_column_width(self):
-        return self.n_in + 30*self.use_indicators + self.n_out + 1
-
-    def read_h5py_database_file(self):
-        """
-        Reads the database hdf5 file containing the currency pair data in read only mode
-        :returns: The hdf5 file in read only mode
-        """
-        return h5py.File(self.database_filepath, 'r', libver='latest')
-
-    def read_h5py_output_file(self):
-        return h5py.File(self.output_filepath, 'a', libver='latest')
+        self.create_databases_in_file()
 
     def run(self):
-        print("Data Processor has started")
+        """
+        The main loop of data_processor. Starts all subprocesses for each dataset and saves their modified data in the specific datset in finished_data.h5
+        :rtype: None
+        """
+        logging.info("Data Processor has started")
         database_file = self.read_h5py_database_file()
         q = Queue()
         processes = []
@@ -66,7 +48,7 @@ class DataProcessor(Process):
             dset[-data.shape[0]:] = data
             file.flush()
             file.close()
-            print('Saved modified data with shape', data.shape, 'to file for pair[' + dset_name + ']')
+            logging.info('Saved modified data with shape', data.shape, 'to file for pair[' + dset_name + ']')
             del data
 
     def read_database_and_produce_modified_data_loop(self, queue, dset_name):
@@ -76,40 +58,64 @@ class DataProcessor(Process):
         :param queue: the queue in which finished data will be put
         :return: None
         """
-        print("new Process started listening on dataset[" + dset_name + ']')
+        logging.info("new Process started listening on dataset[" + dset_name + ']')
         n_completed = 0  # the number of finished modified rows, may self
         while True:
-            # event[dset_name].wait()
+            # Todo: event[dset_name].wait()
             database = self.read_h5py_database_file()
             dset = database[dset_name]
             selection_array = dset[n_completed:, :]  # important datas
-            if len(selection_array) <= self.get_data_column_width():  # max(timeperiod) in out
-                print('not enough data for timeseries calculation', dset_name, '. Waiting for next event')
+            if len(selection_array) <= self.get_minimum_data_amount_for_timeseries():  # max(timeperiod) in out
+                logging.info('not enough data for timeseries calculation', dset_name, '. Waiting for 20 seconds')
                 del selection_array
                 database.close()
                 time.sleep(20)
                 continue
-            if self.use_indicators:  # adding indicators
-                selection_array = np.array(selection_array, dtype='f8')
-                selection_array = dm.add_SMA_indicator_to_data(selection_array, close_index=0, timeperiod=30) #1 column
-                selection_array = dm.add_BBANDS_indicator_to_data(selection_array, close_index=0) #3 columns
-                selection_array = dm.add_RSI_indicator_to_data(selection_array, close_index=0) #1 column
-                selection_array = dm.add_OBV_indicator_to_data(selection_array, close_index=0, volume_index=6) #1column
-                selection_array = dm.drop_NaN_rows(selection_array)
+            if self.use_indicators:
+                selection_array = dm.add_indicators_to_data(selection_array)
             if self.use_scaling:
                 if self._scaler is None:
-                    selection_array, self._scaler = dm.normalize_data_MinMax(selection_array) #TODO: decide over param
+                    selection_array, self._scaler = dm.normalize_data_MinMax(selection_array)
                     self.queue.put(self._scaler)
                 else:
                     selection_array = dm.normalize_data(selection_array, self._scaler)
-            timeseries_data = dm.data_to_supervised(selection_array, n_in=self.n_in, n_out=self.n_out, drop_columns_indices=self.drop_data_columns_indices,
-                                                    label_columns_indices=[0])
+            timeseries_data  = dm.data_to_supervised_timeseries(selection_array, n_in=self.n_in, n_out=self.n_out, drop_columns_indices=self.drop_data_columns_indices,
+                                                               label_columns_indices=[0])
             n_completed += len(timeseries_data)
-            print("Data modification finished for pair[" + dset_name + '] with shape', timeseries_data.shape)
+            logging.info("Data modification finished for pair[" + dset_name + '] with shape', timeseries_data.shape)
             queue.put((dset_name, timeseries_data))
             del selection_array
             del timeseries_data
             database.close()
+
+    def get_number_of_features(self):
+        """
+        :return: The number of columns for a single point in time, including indicator column number if present
+        """
+        #data = self.read_h5py_database_file() #TODO: indicator calc, unmodified column calc
+        #dset = data[data.keys()]
+        #8=number of columns in pair_data_unmodified
+        if self.use_indicators:
+            return 6 + 8 - len(self.drop_data_columns_indices) # 6=number of indicator columns
+        else:
+            return 8 - len(self.drop_data_columns_indices)
+
+    def get_minimum_data_amount_for_timeseries(self):
+        """
+        30*self.use_indicators because some indicators need 30 data points prior to t
+        :return: the minimum data needed to produce at least 1 timestep
+        """
+        return 30*self.use_indicators + (self.n_in + self.n_out + 1) #use_indicators=0 or =1
+
+    def read_h5py_database_file(self):
+        """
+        Reads the database hdf5 file containing the currency pair data in read only mode
+        :returns: The hdf5 file in read only mode
+        """
+        return h5py.File(self.database_filepath, 'r', libver='latest')
+
+    def read_h5py_output_file(self):
+        return h5py.File(self.output_filepath, 'a', libver='latest')
 
     def create_h5py_output_file(self):
         if not os.path.exists(os.path.dirname(self.output_filepath)):
@@ -117,10 +123,10 @@ class DataProcessor(Process):
                 os.makedirs(os.path.dirname(self.output_filepath))
             except OSError as exc:  # Guard against race condition
                 logging.exception(exc)
-        print("Overwriting output file")
-        return h5py.File(self.output_filepath, 'w', libver='latest') #Always overwrite because databse might change
+        logging.info("Overwriting output file")
+        return h5py.File(self.output_filepath, 'w', libver='latest') #Always overwrite because database might change
 
-    def create_databases(self):
+    def create_databases_in_file(self):
         file = self.read_h5py_output_file()
         database = self.read_h5py_database_file()
         for pair in database.keys():

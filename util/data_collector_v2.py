@@ -7,16 +7,17 @@ from multiprocessing import Process, Queue, Event
 import h5py
 import pandas as pd
 
+from bot import API
 from definitions import get_absolute_path
 
 
 class DataCollector(Process): #TODO: drop columns
 
-    def __init__(self, BASE_FILEPATH='data', currency_pairs=['BTC_USDT'], start_dates=[1405699200],
+    def __init__(self,output_filepath, currency_pairs=['BTC_USDT'], start_dates=[1405699200],
                  end_dates=[9999999999], time_periods=[300], overwrite=False, log_level=logging.INFO):
         super(DataCollector, self).__init__()
         logging.getLogger().setLevel(log_level)
-        self.filepath = get_absolute_path(BASE_FILEPATH + '/pair_data_unmodified.h5')
+        self.filepath = get_absolute_path(output_filepath)
         self.BASE_URL = 'https://poloniex.com/public?command=returnChartData'
         self.time_periods = time_periods
         self.currency_pairs = currency_pairs
@@ -27,20 +28,19 @@ class DataCollector(Process): #TODO: drop columns
 
         #Call file creation related methods
         self.create_h5py_file()
-        self.create_databases()
+        self.create_datasets()
         self.update_latest_dates()
 
     def mp_worker(self, q, pair_index):
+        """
+        The worker methods which collects crypto data for the given pair and puts it back to queue
+        :param q:
+        :param pair_index:
+        """
         pair, start_date, last_date, end_date, time_period = self.currency_pairs[pair_index], self.start_dates[
             pair_index], self.last_dates[pair_index], self.end_dates[pair_index], self.time_periods[pair_index]
         while True:
-            url = self.build_url(pair, last_date, end_date, time_period)
-            try:
-                df = pd.read_json(url, convert_dates=False)  # TODO: catch errors
-            except (HTTPError, URLError) as e:
-                logging.error('error retrieving data. Trying again in 5 seconds.')
-                time.sleep(5)
-                continue
+            df = API.receive_pair_data(pair, last_date, end_date, time_period)
             if len(df) == 1 & (df == 0).all(axis=1)[0]:  # No new data?
                 print('no new data for downloader[' + pair + ']. Latest date: ' + str(last_date))
             else:
@@ -52,6 +52,10 @@ class DataCollector(Process): #TODO: drop columns
             time.sleep(time_period / 10)  # TODO: find good time
 
     def run(self):
+        """
+        main loop of the datacollector. This will start all subprocess collectors for each pair and also receive their data
+        via queue to put in pair_data_unmodified.h5
+        """
         n = min(len(self.currency_pairs), 6)  # 6 processes at maximum
         q = Queue()
         processes = []
@@ -70,7 +74,10 @@ class DataCollector(Process): #TODO: drop columns
             file.close()
             print('Saved data to file for pair[' + pair + ']')
 
-    def create_databases(self):
+    def create_datasets(self):
+        """
+        Created a dataset for each crypto pair in the pair_data_unmodified.h5 file
+        """
         file = self.read_h5py_file()
         for pair in self.currency_pairs:
             if pair in file:
@@ -84,8 +91,10 @@ class DataCollector(Process): #TODO: drop columns
     def read_h5py_file(self):
         return h5py.File(self.filepath, 'a', libver='latest')
 
-
     def update_latest_dates(self):
+        """
+        Reads the pair_data_unmodified.h5 file and checks the latest saved dates
+        """
         if not self.overwrite:  # Otherwise there is no need to update anything
             file = self.read_h5py_file()
             for i in range(len(self.currency_pairs)):

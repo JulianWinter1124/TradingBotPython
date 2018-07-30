@@ -1,26 +1,27 @@
+import logging
+
 import numpy as np
 import talib  # windows: https://www.lfd.uci.edu/~gohlke/pythonlibs/#ta-lib
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 
-def create_test_and_training_data(normalized_data, label_indices=[0], del_columns_indices=[], split_factor=0.8):
-    normalized_data = np.delete(normalized_data, del_columns_indices, axis=1)
-    labels = normalized_data[:, label_indices]
-    train_test = np.delete(normalized_data, label_indices, axis=1)
-
-    # split and reshape for ML
-    split_index = int(split_factor * len(train_test))
-    train = train_test[:split_index, :]
-    test = train_test[split_index:, :]
-    train_label = labels[:split_index, :]
-    test_label = labels[split_index:, :]
-    train = train.reshape((train.shape[0], 1, train.shape[1]))
-    test = test.reshape((test.shape[0], 1, test.shape[1]))
-    train_label = train_label.reshape(
-        (train_label.shape[0], 1, train_label.shape[1]))  # TODO: Change 1 to something else
-    test_label = test_label.reshape((test_label.shape[0], 1, test_label.shape[1]))
-    return train, train_label, test, test_label
-
+# def create_test_and_training_data(normalized_data, label_indices=[0], del_columns_indices=[], split_factor=0.8):
+#     normalized_data = np.delete(normalized_data, del_columns_indices, axis=1)
+#     labels = normalized_data[:, label_indices]
+#     train_test = np.delete(normalized_data, label_indices, axis=1)
+#
+#     # split and reshape for ML
+#     split_index = int(split_factor * len(train_test))
+#     train = train_test[:split_index, :]
+#     test = train_test[split_index:, :]
+#     train_label = labels[:split_index, :]
+#     test_label = labels[split_index:, :]
+#     train = train.reshape((train.shape[0], 1, train.shape[1]))
+#     test = test.reshape((test.shape[0], 1, test.shape[1]))
+#     train_label = train_label.reshape(
+#         (train_label.shape[0], 1, train_label.shape[1]))  # TODO: Change 1 to something else
+#     test_label = test_label.reshape((test_label.shape[0], 1, test_label.shape[1]))
+#     return train, train_label, test, test_label
 
 def normalize_data_MinMax(data):
     scaler = MinMaxScaler()
@@ -43,7 +44,22 @@ def normalize_data(data, scaler):
         return data
 
 
-def data_to_supervised(data, n_in=1, n_out=1, drop_columns_indices=[], label_columns_indices=[0]):
+def reverse_normalize_incomplete_data(data_column, original_index_in_data, n_features, scaler):
+    data = np.zeros(shape=(len(data_column), n_features))
+    data[:, original_index_in_data] = data_column
+    return scaler.inverse_transform(data)[:, original_index_in_data]
+
+
+def data_to_supervised_timeseries(data, n_in=1, n_out=1, drop_columns_indices=[], label_columns_indices=[0]):
+    """
+    Converts the given data to a timeseries. Altered version from https://machinelearningmastery.com/multivariate-time-series-forecasting-lstms-keras/
+    :param data:
+    :param n_in:
+    :param n_out:
+    :param drop_columns_indices:
+    :param label_columns_indices:
+    :return:
+    """
     data = np.delete(data, drop_columns_indices, axis=1)
     cols = list()
     for i in range(n_in, -n_out - 1, -1):
@@ -51,10 +67,45 @@ def data_to_supervised(data, n_in=1, n_out=1, drop_columns_indices=[], label_col
         if i <= 0:
             column = column[:, label_columns_indices]  # The future points may only contain labels
         cols.append(column)
-    agg = np.concatenate(cols, axis=1)
-    agg = agg[n_in:-n_out - 1]  # NaN is always dropped
-    return agg
+    concat = np.concatenate(cols, axis=1)
+    concat = concat[n_in:-n_out - 1]  # NaN is always dropped
+    return concat
 
+def data_to_timeseries_without_labels(data, n_in, scaler, drop_columns_indices=[], use_scaling=True, use_indicators=True):
+    data = np.delete(data, drop_columns_indices, axis=1)
+    selection_array = data[-(n_in+30):, :]
+    if use_indicators:  # adding indicators
+        selection_array = np.array(selection_array, dtype='f8')
+        selection_array = add_SMA_indicator_to_data(selection_array, close_index=0, timeperiod=30)  # 1 column
+        selection_array = add_BBANDS_indicator_to_data(selection_array, close_index=0)  # 3 columns
+        selection_array = add_RSI_indicator_to_data(selection_array, close_index=0)  # 1 column
+        selection_array = add_OBV_indicator_to_data(selection_array, close_index=0, volume_index=6)  # 1column
+        selection_array = drop_NaN_rows(selection_array)
+    if use_scaling:
+        if scaler is not None:
+            selection_array = normalize_data(selection_array, scaler)
+    print(selection_array.shape)
+    cols = list()
+    for i in range(n_in, 0, -1):
+        cols.append(selection_array[-i, :])
+    concat = np.hstack(cols)
+    print(concat.shape)
+    return concat
+
+def add_indicators_to_data(selection_array):
+    """
+    Adds all indicators to the passed data array.
+    This DELETES the first lines of data because NaN rows are dropped (30 for now, but specified by max(timeperiod)
+    :param selection_array:
+    :return:
+    """
+    selection_array = np.array(selection_array, dtype='f8')
+    selection_array = add_SMA_indicator_to_data(selection_array, close_index=0, timeperiod=30)  # 1 column
+    selection_array = add_BBANDS_indicator_to_data(selection_array, close_index=0)  # 3 columns
+    selection_array = add_RSI_indicator_to_data(selection_array, close_index=0)  # 1 column
+    selection_array = add_OBV_indicator_to_data(selection_array, close_index=0, volume_index=6)  # 1column
+    selection_array = drop_NaN_rows(selection_array)
+    return selection_array
 
 def add_SMA_indicator_to_data(data, close_index=0, timeperiod=30):
     out = np.expand_dims(talib.SMA(data[:, close_index], timeperiod=timeperiod), axis=1)

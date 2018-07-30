@@ -47,14 +47,14 @@ class DataModifierTest(unittest.TestCase):
     def test_data_to_supervised(self):
         df = pd.read_csv(os.path.join(ROOT_DIR, 'data/BTCUSD300.csv'))
         for i, j in itertools.product(range(1, 3), range(3)):
-            timeseries = dm.data_to_supervised(df, n_in=i, n_out=j, drop_columns_indices=[5],
-                                               label_columns_indices=[0])
+            timeseries = dm.data_to_supervised_timeseries(df, n_in=i, n_out=j, drop_columns_indices=[5],
+                                                          label_columns_indices=[0])
             print('###############################################################')
             print(timeseries.head(1))
 
         for i, j in itertools.product(range(1, 2), range(2)):
-            timeseries = dm.data_to_supervised(df, n_in=i, n_out=j, drop_columns_indices=[5],
-                                               label_columns_indices=[0, 6])
+            timeseries = dm.data_to_supervised_timeseries(df, n_in=i, n_out=j, drop_columns_indices=[5],
+                                                          label_columns_indices=[0, 6])
             print('###############################################################')
             print(timeseries.head(1))
 
@@ -67,7 +67,7 @@ class DataModifierTest(unittest.TestCase):
         print(dm.add_OBV_indicator_to_data(df.values, [0, 6]).shape)
 
         test = pd.DataFrame(dm.add_BBANDS_indicator_to_data(df.values))
-        print(dm.data_to_supervised(test))
+        print(dm.data_to_supervised_timeseries(test))
 
     def test_drop_NaN_rows(self):
         df = pd.read_csv(os.path.join(ROOT_DIR, 'data/BTCUSD300.csv'))
