@@ -73,8 +73,14 @@ def receive_currency_trading_info(currency):
     :param currency: a currency shortcut as returned in receive_currency_list()
     :return: A dataframe with trading info for the specified currency
     """
-    currencies = pd.read_json('https://poloniex.com/public?command=returnCurrencies')
-    return currencies[currency]
+    while(True):
+        try:
+            currencies = pd.read_json('https://poloniex.com/public?command=returnCurrencies')
+        except HTTPError:
+            logging.error('error retrieving' + currency + 'trading info. Trying again in %d seconds.' % 1)
+            time.sleep(1)
+            continue
+        return currencies[currency]
 
 def receive_currency_list():
     """
@@ -82,8 +88,14 @@ def receive_currency_list():
     see: https://poloniex.com/support/api/
     :return: all currencies as list
     """
-    currencies = pd.read_json('https://poloniex.com/public?command=returnCurrencies')
-    return currencies.columns.values
+    while (True):
+        try:
+            currencies = pd.read_json('https://poloniex.com/public?command=returnCurrencies')
+        except HTTPError:
+            logging.error('error retrieving currency list. Trying again in %d seconds.' % 1)
+            time.sleep(1)
+            continue
+        return currencies.columns.values
 
 
 
