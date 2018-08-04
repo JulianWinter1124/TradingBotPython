@@ -42,7 +42,7 @@ def receive_pair_data(pair, start_date, end_date, time_period):
         try:
             df = pd.read_json(url, convert_dates=False)  # TODO: catch errors
         except (HTTPError, URLError) as e:
-            logging.error('error retrieving latest price. Trying again in %d seconds.' %(count+1))
+            logging.error('error retrieving latest price for pair' + pair + 'Trying again in %d seconds.' %(count+1))
             time.sleep(count+1)
             continue
         return df
@@ -77,7 +77,7 @@ def receive_currency_trading_info(currency):
         try:
             currencies = pd.read_json('https://poloniex.com/public?command=returnCurrencies')
         except HTTPError:
-            logging.error('error retrieving' + currency + 'trading info. Trying again in %d seconds.' % 1)
+            logging.error('error retrieving [' + currency + '] trading info. Trying again in %d seconds.' % 1)
             time.sleep(1)
             continue
         return currencies[currency]

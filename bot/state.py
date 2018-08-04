@@ -4,6 +4,7 @@ from collections import defaultdict
 
 class State:
 
+    #TODO: implement later, more of an idea
     def __init__(self, balance):
         self.usd_balance = balance  # balance in US dollar
         self._currency_balance = defaultdict(lambda: 0)

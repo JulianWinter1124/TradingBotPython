@@ -77,14 +77,14 @@ def cleaner():
 
 #TODO: put all this somewhere else.
 if __name__ == '__main__':
-    logging.getLogger().setLevel(logging.INFO)
+    #logging.getLogger().setLevel(logging.INFO)
 
     n_in = 20 #The number of timeseriessteps in the past
     n_out = 5 #The number of (additional) future labels
     q = Queue()
     coll = DataCollector(output_filepath='data/pair_data_unmodified.h5', currency_pairs=['USDT_BTC', 'USDT_ETH'],
                          start_dates=[1503446400, 1503446400], end_dates=[9999999999, 9999999999],
-                         time_periods=[300, 300], overwrite=True)
+                         time_periods=[300, 300], overwrite=False)
     proc = DataProcessor(queue=q, database_filepath='data/pair_data_unmodified.h5', output_filepath='data/finished_data.h5', use_scaling=True, use_indicators=True, n_in=n_in, n_out=n_out)
     n_features = proc.get_number_of_features() #The number of individual features
     coll.start()
@@ -92,10 +92,9 @@ if __name__ == '__main__':
     time.sleep(5)
     coll.terminate()
     gen = DataGenerator('data/finished_data.h5')
-    time.sleep(25) #Leave some time for the data Processor # TODO: replace with something useful
+    time.sleep(60) #Leave some time for the data Processor # TODO: replace with something useful
     proc.terminate()
 
-     # TODO: proc.get_features
     generator = gen.create_data_generator('USDT_BTC', batch_size=64, n_in=n_in, n_features=n_features)
     neur = Neural('BTC', overwrite=True, batch_size=64, output_size=1+n_out)
     model = neur.load_or_build_model(n_in=n_in, n_out=n_out, n_features=n_features, layer_units=[30, 20], activation_function='tanh', loss_function='mse') #TODO: put in neural
@@ -105,7 +104,6 @@ if __name__ == '__main__':
     history = neur.train_model(data[0:split_i, :], labels[0:split_i, :], data[split_i:, :], labels[split_i:, :], epochs=1, shuffle=True, save=False) #'normal' method
 
     pred = neur.predict(data[split_i:, :])
-
 
     print('actual\n', labels[split_i:])
     print(labels.shape, pred.shape)

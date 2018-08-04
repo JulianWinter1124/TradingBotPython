@@ -29,7 +29,6 @@ class DataProcessor(Process):
     def run(self):
         """
         The main loop of data_processor. Starts all subprocesses for each dataset and saves their modified data in the specific datset in finished_data.h5
-        :rtype: None
         """
         logging.info("Data Processor has started")
         database_file = self.read_h5py_database_file()
@@ -49,6 +48,7 @@ class DataProcessor(Process):
             file.flush()
             file.close()
             logging.info('Saved modified data with shape', data.shape, 'to file for pair[' + dset_name + ']')
+            print('here2')
             del data
 
     def read_database_and_produce_modified_data_loop(self, queue, dset_name):
@@ -83,6 +83,7 @@ class DataProcessor(Process):
                                                                label_columns_indices=[0])
             n_completed += len(timeseries_data)
             logging.info("Data modification finished for pair[" + dset_name + '] with shape', timeseries_data.shape)
+            print('here1')
             queue.put((dset_name, timeseries_data))
             del selection_array
             del timeseries_data

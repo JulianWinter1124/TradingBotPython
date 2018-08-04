@@ -1,11 +1,11 @@
+import multiprocessing
 from urllib.error import URLError, HTTPError
 import logging
 import os
 import time
-from multiprocessing import Process, Queue, Event
+from multiprocessing import Process, Queue
 
 import h5py
-import pandas as pd
 
 from bot import API
 from definitions import get_absolute_path
@@ -16,7 +16,7 @@ class DataCollector(Process): #TODO: drop columns
     def __init__(self,output_filepath, currency_pairs=['BTC_USDT'], start_dates=[1405699200],
                  end_dates=[9999999999], time_periods=[300], overwrite=False, log_level=logging.INFO):
         super(DataCollector, self).__init__()
-        logging.getLogger().setLevel(log_level)
+        #logging.getLogger().setLevel(log_level)
         self.filepath = get_absolute_path(output_filepath)
         self.BASE_URL = 'https://poloniex.com/public?command=returnChartData'
         self.time_periods = time_periods
@@ -31,10 +31,10 @@ class DataCollector(Process): #TODO: drop columns
         self.create_datasets()
         self.update_latest_dates()
 
-    def mp_worker(self, q, pair_index):
+    def mp_worker(self, queue: Queue, pair_index):
         """
         The worker methods which collects crypto data for the given pair and puts it back to queue
-        :param q:
+        :param queue:
         :param pair_index:
         """
         pair, start_date, last_date, end_date, time_period = self.currency_pairs[pair_index], self.start_dates[
@@ -46,8 +46,8 @@ class DataCollector(Process): #TODO: drop columns
             else:
                 last_date = df['date'].tail(1).values[0] + 1 # +1 so that request does not get the same again
                 self.last_dates[pair_index] = last_date
-                q.put((pair, df.values))  # put data AND the currency pair
-                print('New Data found for downloader[' + pair + ']. New latest date: ' + str(last_date))
+                queue.put((pair, df.values), block=True)  # put data AND the currency pair
+                print('New Data found for downloader[' + pair + ']. New latest date: ' + str(last_date)) #TODO: implement proper multiprocessing logging
             del df
             time.sleep(time_period / 10)  # TODO: find good time
 
@@ -64,7 +64,9 @@ class DataCollector(Process): #TODO: drop columns
             processes.append(p)
             p.start()
         while True:
+            print("Waiting for data...")
             pair, data = q.get() #  This is a stopping method
+            print('...Data received')
             file = self.read_h5py_file()
             dset = file[str(pair)]
             dset.resize((dset.shape[0] + data.shape[0]), axis=0)
@@ -99,8 +101,9 @@ class DataCollector(Process): #TODO: drop columns
             file = self.read_h5py_file()
             for i in range(len(self.currency_pairs)):
                 dset = file[self.currency_pairs[i]]
-                date = dset[-1, 1]#TODO: might replace second index with variable
-                self.last_dates[i] = date + 1
+                if not len(dset) == 0:
+                    date = dset[-1, 1]#TODO: might replace second index with variable
+                    self.last_dates[i] = date + 1
 
     def create_h5py_file(self):
         if not os.path.exists(os.path.dirname(self.filepath)):

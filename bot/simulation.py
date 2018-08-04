@@ -57,7 +57,7 @@ class Simulation:
         else:
             logging.error('You do not possess ' + currency)
 
-    def withdraw(self, amount): #don't. its too pricey
+    def withdraw(self, amount): #don't. its too pricey, 25$ for one withdrawal... puh
         self.dollar_balance -= amount
 
 
