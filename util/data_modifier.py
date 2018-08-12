@@ -50,12 +50,13 @@ def reverse_normalize_incomplete_data(data_column, original_index_in_data, n_fea
     return scaler.inverse_transform(data)[:, original_index_in_data]
 
 
-def data_to_supervised_timeseries(data, n_in=1, n_out=1, drop_columns_indices=[], label_columns_indices=[0]):
+def data_to_supervised_timeseries(data, n_in=1, n_out=1, n_out_jumps=1, drop_columns_indices=[], label_columns_indices=[0]):
     """
-    Converts the given data to a timeseries. Altered version from https://machinelearningmastery.com/multivariate-time-series-forecasting-lstms-keras/
+    Converts the given data to a timeseries. Inspired from https://machinelearningmastery.com/multivariate-time-series-forecasting-lstms-keras/
     :param data:
-    :param n_in:
-    :param n_out:
+    :param n_in: the number of steps you look back in the past (excluding present)
+    :param n_out: the number of steps you look in the future (excluding present)
+    :param n_out_jumps: the jumps you make in the future (to be able to change timeframe)
     :param drop_columns_indices:
     :param label_columns_indices:
     :return:
@@ -63,12 +64,17 @@ def data_to_supervised_timeseries(data, n_in=1, n_out=1, drop_columns_indices=[]
     data = np.delete(data, drop_columns_indices, axis=1)
     cols = list()
     for i in range(n_in, -n_out - 1, -1):
-        column = np.roll(data, i, axis=0)
         if i <= 0:
+            column = np.roll(data, i*n_out_jumps, axis=0)
             column = column[:, label_columns_indices]  # The future points may only contain labels
+        else:
+            column = np.roll(data, i, axis=0)
         cols.append(column)
     concat = np.concatenate(cols, axis=1)
-    concat = concat[n_in:-n_out - 1]  # NaN is always dropped
+    if n_out == 0:
+        concat = concat[n_in:]# NaN is always dropped
+    else:
+        concat = concat[n_in:-n_out*n_out_jumps]
     return concat
 
 def data_to_timeseries_without_labels(data, n_in, scaler, drop_columns_indices=[], use_scaling=True, use_indicators=True):

@@ -1,5 +1,4 @@
 import multiprocessing
-from urllib.error import URLError, HTTPError
 import logging
 import os
 import time
@@ -31,12 +30,13 @@ class DataCollector(Process): #TODO: drop columns
         self.create_datasets()
         self.update_latest_dates()
 
-    def mp_worker(self, queue: Queue, pair_index):
+    def mp_worker(self, queue, pair_index):
         """
         The worker methods which collects crypto data for the given pair and puts it back to queue
         :param queue:
         :param pair_index:
         """
+        print(queue)
         pair, start_date, last_date, end_date, time_period = self.currency_pairs[pair_index], self.start_dates[
             pair_index], self.last_dates[pair_index], self.end_dates[pair_index], self.time_periods[pair_index]
         while True:
@@ -46,7 +46,7 @@ class DataCollector(Process): #TODO: drop columns
             else:
                 last_date = df['date'].tail(1).values[0] + 1 # +1 so that request does not get the same again
                 self.last_dates[pair_index] = last_date
-                queue.put((pair, df.values), block=True)  # put data AND the currency pair
+                queue.put((pair, df.values))  # put data AND the currency pair
                 print('New Data found for downloader[' + pair + ']. New latest date: ' + str(last_date)) #TODO: implement proper multiprocessing logging
             del df
             time.sleep(time_period / 10)  # TODO: find good time
@@ -57,10 +57,13 @@ class DataCollector(Process): #TODO: drop columns
         via queue to put in pair_data_unmodified.h5
         """
         n = min(len(self.currency_pairs), 6)  # 6 processes at maximum
-        q = Queue()
+        global q
+        q = multiprocessing.Queue()
+        print('actual queue:' + str(q))
+        self.test_queue(q)
         processes = []
         for i in range(n):
-            p = Process(target=self.mp_worker, args=(q, i,))
+            p = Process(target=self.mp_worker, args=(q, i,)) #queue is not properly shared on windows
             processes.append(p)
             p.start()
         while True:
@@ -75,6 +78,9 @@ class DataCollector(Process): #TODO: drop columns
             file.flush()
             file.close()
             print('Saved data to file for pair[' + pair + ']')
+
+    def test_queue(self, queue):
+        print("test queue" + str(queue))
 
     def create_datasets(self):
         """

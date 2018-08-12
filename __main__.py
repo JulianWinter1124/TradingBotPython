@@ -98,6 +98,7 @@ if __name__ == '__main__':
     generator = gen.create_data_generator('USDT_BTC', batch_size=64, n_in=n_in, n_features=n_features)
     neur = Neural('BTC', overwrite=True, batch_size=64, output_size=1+n_out)
     model = neur.load_or_build_model(n_in=n_in, n_out=n_out, n_features=n_features, layer_units=[30, 20], activation_function='tanh', loss_function='mse') #TODO: put in neural
+    #neur.plot_model_to_file('model.png', False, True)
 
     data, labels = gen.read_data_and_labels_from_finished_data_file('USDT_BTC', n_in=n_in, n_features=n_features)
     split_i = int(len(data)*0.9)

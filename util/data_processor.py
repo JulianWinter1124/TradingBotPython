@@ -30,7 +30,7 @@ class DataProcessor(Process):
         """
         The main loop of data_processor. Starts all subprocesses for each dataset and saves their modified data in the specific datset in finished_data.h5
         """
-        logging.info("Data Processor has started")
+        print("Data Processor has started")
         database_file = self.read_h5py_database_file()
         q = Queue()
         processes = []
@@ -47,7 +47,7 @@ class DataProcessor(Process):
             dset[-data.shape[0]:] = data
             file.flush()
             file.close()
-            logging.info('Saved modified data with shape', data.shape, 'to file for pair[' + dset_name + ']')
+            print('Saved modified data with shape', data.shape, 'to file for pair[' + dset_name + ']')
             print('here2')
             del data
 
@@ -58,7 +58,7 @@ class DataProcessor(Process):
         :param queue: the queue in which finished data will be put
         :return: None
         """
-        logging.info("new Process started listening on dataset[" + dset_name + ']')
+        print("new Process started listening on dataset[" + dset_name + ']')
         n_completed = 0  # the number of finished modified rows, may self
         while True:
             # Todo: event[dset_name].wait()
@@ -66,7 +66,7 @@ class DataProcessor(Process):
             dset = database[dset_name]
             selection_array = dset[n_completed:, :]  # important datas
             if len(selection_array) <= self.get_minimum_data_amount_for_timeseries():  # max(timeperiod) in out
-                logging.info('not enough data for timeseries calculation', dset_name, '. Waiting for 20 seconds')
+                print('not enough data for timeseries calculation', dset_name, '. Waiting for 20 seconds')
                 del selection_array
                 database.close()
                 time.sleep(20)
@@ -82,7 +82,7 @@ class DataProcessor(Process):
             timeseries_data  = dm.data_to_supervised_timeseries(selection_array, n_in=self.n_in, n_out=self.n_out, drop_columns_indices=self.drop_data_columns_indices,
                                                                label_columns_indices=[0])
             n_completed += len(timeseries_data)
-            logging.info("Data modification finished for pair[" + dset_name + '] with shape', timeseries_data.shape)
+            print("Data modification finished for pair[" + dset_name + '] with shape', timeseries_data.shape)
             print('here1')
             queue.put((dset_name, timeseries_data))
             del selection_array
@@ -124,7 +124,7 @@ class DataProcessor(Process):
                 os.makedirs(os.path.dirname(self.output_filepath))
             except OSError as exc:  # Guard against race condition
                 logging.exception(exc)
-        logging.info("Overwriting output file")
+        print("Overwriting output file")
         return h5py.File(self.output_filepath, 'w', libver='latest') #Always overwrite because database might change
 
     def create_databases_in_file(self):
@@ -132,9 +132,9 @@ class DataProcessor(Process):
         database = self.read_h5py_database_file()
         for pair in database.keys():
             if pair in file:
-                logging.info('Pair: ' + pair + 'already exists in' + str(file) + '...continuing')
+                print('Pair: ' + pair + 'already exists in' + str(file) + '...continuing')
             else:
-                logging.info('Pair: ' + pair + 'was not found in' + str(file) + '...creating new dataset')
+                print('Pair: ' + pair + 'was not found in' + str(file) + '...creating new dataset')
                 dset = file.create_dataset(pair, shape=(0, 1), maxshape=(None, None)) #chunk param is really important
                 dset.flush()
         file.swmr_mode = True

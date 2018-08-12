@@ -18,7 +18,7 @@ class Neural():
         self.reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7, verbose=1, min_delta=1e-4,
                                                 mode='min')
 
-    def load_or_build_model(self, n_in, n_out, n_features, layer_units=[10, 10, 10], activation_function='linear', loss_function='tanh', optimizer='adam'):
+    def load_or_build_model(self, n_in, n_out, n_features, layer_units=[30, 20], activation_function='LeakyReLU', loss_function='LeakyReLU', optimizer='adam'):
         from keras.models import Sequential, load_model
         from keras.layers import Dense, Activation, LSTM, Dropout, LeakyReLU, regularizers, Flatten
         if self.overwrite or not os.path.isfile(self.filepath):  # Is there no existing model?
