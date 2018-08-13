@@ -1,5 +1,6 @@
 import unittest
 
+from bot import simulation
 from bot.simulation import Simulation
 
 
@@ -38,3 +39,10 @@ class TestSimulation(unittest.TestCase):
         self.simulation.buy_amount('USDT_BTC', 0.03)
         print(self.simulation.get_dollar_balance())
         print(self.simulation.get_account_worth())
+
+class TestSimulationMethods(unittest.TestCase):
+
+    def test_calc_win_margin_price(self):
+        print(simulation.calc_win_margin_price(1, +1))
+        print(simulation.calc_win_margin_price(1, -1))
+        print(simulation.calc_win_margin_price(1, 0))
