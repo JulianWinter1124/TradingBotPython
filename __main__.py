@@ -84,16 +84,13 @@ if __name__ == '__main__':
     q = Queue()
     coll = DataCollector(output_filepath='data/pair_data_unmodified.h5', currency_pairs=['USDT_BTC', 'USDT_ETH'],
                          start_dates=[1503446400, 1503446400], end_dates=[9999999999, 9999999999],
-                         time_periods=[300, 300], overwrite=False)
+                         time_periods=[300, 300], overwrite=True)
     proc = DataProcessor(queue=q, database_filepath='data/pair_data_unmodified.h5', output_filepath='data/finished_data.h5', use_scaling=True, use_indicators=True, n_in=n_in, n_out=n_out)
     n_features = proc.get_number_of_features() #The number of individual features
     coll.start()
     proc.start()
-    time.sleep(5)
-    coll.terminate()
     gen = DataGenerator('data/finished_data.h5')
     time.sleep(60) #Leave some time for the data Processor # TODO: replace with something useful
-    proc.terminate()
 
     generator = gen.create_data_generator('USDT_BTC', batch_size=64, n_in=n_in, n_features=n_features)
     neur = Neural('BTC', overwrite=True, batch_size=64, output_size=1+n_out)

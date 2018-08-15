@@ -36,7 +36,6 @@ class DataCollector(Process): #TODO: drop columns
         :param queue:
         :param pair_index:
         """
-        print(queue)
         pair, start_date, last_date, end_date, time_period = self.currency_pairs[pair_index], self.start_dates[
             pair_index], self.last_dates[pair_index], self.end_dates[pair_index], self.time_periods[pair_index]
         while True:
@@ -46,7 +45,7 @@ class DataCollector(Process): #TODO: drop columns
             else:
                 last_date = df['date'].tail(1).values[0] + 1 # +1 so that request does not get the same again
                 self.last_dates[pair_index] = last_date
-                queue.put((pair, df.values))  # put data AND the currency pair
+                queue.put((pair, df.values), block=True)  # put data AND the currency pair
                 print('New Data found for downloader[' + pair + ']. New latest date: ' + str(last_date)) #TODO: implement proper multiprocessing logging
             del df
             time.sleep(time_period / 10)  # TODO: find good time
@@ -57,10 +56,7 @@ class DataCollector(Process): #TODO: drop columns
         via queue to put in pair_data_unmodified.h5
         """
         n = min(len(self.currency_pairs), 6)  # 6 processes at maximum
-        global q
         q = multiprocessing.Queue()
-        print('actual queue:' + str(q))
-        self.test_queue(q)
         processes = []
         for i in range(n):
             p = Process(target=self.mp_worker, args=(q, i,)) #queue is not properly shared on windows
@@ -71,16 +67,19 @@ class DataCollector(Process): #TODO: drop columns
             pair, data = q.get() #  This is a stopping method
             print('...Data received')
             file = self.read_h5py_file()
+            print('...Data received2')
             dset = file[str(pair)]
+            print('...Data received3')
             dset.resize((dset.shape[0] + data.shape[0]), axis=0)
+            print('...Data received4')
             dset[-data.shape[0]:] = data
+            print('...Data received5')
             dset.flush()
+            print('...Data received6')
             file.flush()
+            print('...Data received7')
             file.close()
             print('Saved data to file for pair[' + pair + ']')
-
-    def test_queue(self, queue):
-        print("test queue" + str(queue))
 
     def create_datasets(self):
         """
@@ -95,9 +94,10 @@ class DataCollector(Process): #TODO: drop columns
                 dset = file.create_dataset(pair, (0, 8), maxshape=(None, 8))
                 dset.flush()
         file.swmr_mode = True
+        file.close()
 
     def read_h5py_file(self):
-        return h5py.File(self.filepath, 'a', libver='latest')
+        return h5py.File(self.filepath, 'r+', libver='latest')
 
     def update_latest_dates(self):
         """
@@ -119,10 +119,11 @@ class DataCollector(Process): #TODO: drop columns
                 logging.exception(exc)
         if self.overwrite:
             print("Overwriting file")
-            return h5py.File(self.filepath, 'w', libver='latest')
+            f = h5py.File(self.filepath, 'w', libver='latest')
         else:
             print("Opening or creating file")
-            return h5py.File(self.filepath, 'a', libver='latest')
+            f = h5py.File(self.filepath, 'a', libver='latest')
+        f.close()
 
     def build_url(self, pair, start_date, end_date, time_period) -> str:
         return self.BASE_URL + '&currencyPair=' + pair + '&start=' + str(start_date) + '&end=' + str(

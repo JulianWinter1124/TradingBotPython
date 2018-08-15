@@ -32,7 +32,7 @@ class Neural():
             self.model.add(Flatten())
             self.model.add(Dense(n_out+1))
             self.model.compile(loss=loss_function, optimizer=optimizer)
-            self.model.save(self.filepath)
+            self.model.save(self.filepath, True)
         else:
             self.model = load_model(self.filepath)
 
