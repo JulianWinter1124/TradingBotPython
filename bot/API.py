@@ -21,8 +21,9 @@ def receive_latest_pair_price(pair, time_period):
             url = build_url(pair, current-time_period+1, current, time_period)
             df = pd.read_json(url, convert_dates=False)
         except (HTTPError, URLError) as e:
-            logging.error('error retrieving latest price. Trying again in %d seconds.' % (count + 1))
-            time.sleep(count + 1)
+            logging.error('error retrieving latest price. Trying again in %d seconds.' % (count))
+            time.sleep(count)
+            count += 1
             continue
         return df['close'].values[0]
 
@@ -40,10 +41,12 @@ def receive_pair_data(pair, start_date, end_date, time_period):
     count = 0
     while(True):
         try:
+            print(url)
             df = pd.read_json(url, convert_dates=False)  # TODO: catch errors
         except (HTTPError, URLError) as e:
-            logging.error('error retrieving latest price for pair' + pair + 'Trying again in %d seconds.' %(count+1))
-            time.sleep(count+1)
+            logging.error('error retrieving latest price for pair' + pair + 'Trying again in %d seconds.' %(count))
+            time.sleep(count)
+            count+=1
             continue
         return df
 
@@ -56,7 +59,7 @@ def build_url(pair, start_date, end_date, time_period) -> str:
     :param time_period:
     :return:
     """
-    return BASE_URL + '&currencyPair=' + pair + '&start=' + str(start_date) + '&end=' + str(
+    return BASE_URL + '&currencyPair=' + str(pair) + '&start=' + str(start_date) + '&end=' + str(
         end_date) + '&period=' + str(time_period)
 
 def receive_currency_trading_info(currency):

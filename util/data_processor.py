@@ -23,21 +23,21 @@ class DataProcessor(Process):
         self.output_filepath = output_filepath
         self.database_filepath = database_filepath
         self._scaler = None
-        self.create_h5py_output_file()
-        self.create_databases_in_file()
 
     def run(self):
         """
         The main loop of data_processor. Starts all subprocesses for each dataset and saves their modified data in the specific datset in finished_data.h5
         """
         print("Data Processor has started")
-        database_file = self.read_h5py_database_file()
-        q = Queue()
-        processes = []
-        for dset_name in database_file.keys():
-            p = Process(target=self.read_database_and_produce_modified_data_loop, args=(q, dset_name,))
-            processes.append(p)
-            p.start()
+        self.create_h5py_output_file()
+        self.create_databases_in_file()
+        with self.read_h5py_database_file() as db_file:
+            q = Queue()
+            processes = []
+            for dset_name in db_file.keys():
+                p = Process(target=self.read_database_and_produce_modified_data_loop, args=(q, dset_name,))
+                processes.append(p)
+                p.start()
         while True:
             dset_name, data = q.get()
             file = self.read_h5py_output_file()
@@ -64,6 +64,7 @@ class DataProcessor(Process):
             # Todo: event[dset_name].wait()
             database = self.read_h5py_database_file()
             dset = database[dset_name]
+            dset.id.refresh()
             selection_array = dset[n_completed:, :]  # important datas
             if len(selection_array) <= self.get_minimum_data_amount_for_timeseries():  # max(timeperiod) in out
                 print('not enough data for timeseries calculation', dset_name, '. Waiting for 20 seconds')
@@ -83,7 +84,6 @@ class DataProcessor(Process):
                                                                label_columns_indices=[0])
             n_completed += len(timeseries_data)
             print("Data modification finished for pair[" + dset_name + '] with shape', timeseries_data.shape)
-            print('here1')
             queue.put((dset_name, timeseries_data))
             del selection_array
             del timeseries_data
@@ -113,10 +113,10 @@ class DataProcessor(Process):
         Reads the database hdf5 file containing the currency pair data in read only mode
         :returns: The hdf5 file in read only mode
         """
-        return h5py.File(self.database_filepath, 'r', libver='latest')
+        return h5py.File(self.database_filepath, mode='r', libver='latest', swmr=True)
 
     def read_h5py_output_file(self):
-        return h5py.File(self.output_filepath, 'a', libver='latest')
+        return h5py.File(self.output_filepath, libver='latest')
 
     def create_h5py_output_file(self):
         if not os.path.exists(os.path.dirname(self.output_filepath)):
@@ -125,7 +125,7 @@ class DataProcessor(Process):
             except OSError as exc:  # Guard against race condition
                 logging.exception(exc)
         print("Overwriting output file")
-        return h5py.File(self.output_filepath, 'w', libver='latest') #Always overwrite because database might change
+        h5py.File(self.output_filepath, 'w', libver='latest').close() #Always overwrite because database might change
 
     def create_databases_in_file(self):
         file = self.read_h5py_output_file()
@@ -137,4 +137,5 @@ class DataProcessor(Process):
                 print('Pair: ' + pair + 'was not found in' + str(file) + '...creating new dataset')
                 dset = file.create_dataset(pair, shape=(0, 1), maxshape=(None, None)) #chunk param is really important
                 dset.flush()
-        file.swmr_mode = True
+        database.close()
+        file.close()

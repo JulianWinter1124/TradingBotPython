@@ -6,7 +6,7 @@ import numpy as np
 
 class DataGenerator:
     
-    def __init__(self, finished_data_filepath='data/finished_data.h5'):
+    def __init__(self, finished_data_filepath='data/finished_data.hdf5'):
         self.finished_data_filepath = finished_data_filepath
 
     def _read_finished_data_file(self):

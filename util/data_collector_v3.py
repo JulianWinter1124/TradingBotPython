@@ -52,8 +52,10 @@ class DataCollector(Process): #TODO: drop columns
         main loop of the datacollector. This will start all subprocess collectors for each pair and also receive their data
         via queue to put in pair_data_unmodified.h5
         """
-        self.create_h5py_file()
-        self.create_datasets()
+        file = self.create_h5py_file_and_datasets()
+        file.swmr_mode = True
+        assert file.swmr_mode
+        file.close()
         self.update_latest_dates()
         n = min(len(self.currency_pairs), 6)  # 6 processes at maximum
         q = multiprocessing.Queue()
@@ -63,57 +65,54 @@ class DataCollector(Process): #TODO: drop columns
             processes.append(p)
             p.start()
         while True:
-            print("Waiting for data...")
+            print("Waiting for new data...")
             pair, data = q.get() #  This is a stopping method
-            print('...Data received')
+            print('data received')
             with h5py.File(self.filepath, libver='latest', swmr=True) as file:
                 dset = file[str(pair)]
                 dset.resize((dset.shape[0] + data.shape[0]), axis=0)
                 dset[-data.shape[0]:] = data
                 dset.flush()
                 file.flush()
+                file.close()
                 print('Saved data to file for pair[' + pair + ']')
-
-    def create_datasets(self):
-        """
-        Created a dataset for each crypto pair in the pair_data_unmodified.h5 file
-        """
-        with h5py.File(self.filepath, libver='latest') as file:
-            for pair in self.currency_pairs:
-                if pair in file:
-                    print('Pair: ' + pair + 'already exists in' + str(file) + '...continuing')
-                else:
-                    print('Pair: ' + pair + 'was not found in' + str(file) + '...creating new dataset')
-                    dset = file.create_dataset(pair, (0, 8), maxshape=(None, 8))
-                    dset.flush()
-
-    #def read_h5py_file(self):
-        #return h5py.File(self.filepath, 'r+', libver='latest')
 
     def update_latest_dates(self):
         """
         Reads the pair_data_unmodified.h5 file and checks the latest saved dates
         """
         if not self.overwrite:  # Otherwise there is no need to update anything
-            with h5py.File(self.filepath, libver='latest') as file:
+            with self.read_database_file() as file:
                 for i in range(len(self.currency_pairs)):
                     dset = file[self.currency_pairs[i]]
                     if not len(dset) == 0:
                         date = dset[-1, 1]#TODO: might replace second index with variable
                         self.last_dates[i] = date + 1
 
-    def create_h5py_file(self):
+    def read_database_file(self):
+        return h5py.File(self.filepath, libver='latest')
+
+    def create_h5py_file_and_datasets(self):
         if not os.path.exists(os.path.dirname(self.filepath)):
             try:
                 os.makedirs(os.path.dirname(self.filepath))
             except OSError as exc:  # Guard against race condition
                 logging.exception(exc)
+
         if self.overwrite:
             print("Overwriting file")
-            h5py.File(self.filepath, 'w', libver='latest').close()
+            file = h5py.File(self.filepath, 'w', libver='latest')
         else:
             print("Opening or creating file")
-            h5py.File(self.filepath, libver='latest').close()
+            file = h5py.File(self.filepath, libver='latest')
+        for pair in self.currency_pairs:
+            if pair in file:
+                print('Pair: ' + pair + 'already exists in' + str(file) + '...continuing')
+            else:
+                print('Pair: ' + pair + 'was not found in' + str(file) + '...creating new dataset')
+                dset = file.create_dataset(pair, (0, 8), maxshape=(None, 8))
+                dset.flush()
+        return file
 
     def build_url(self, pair, start_date, end_date, time_period) -> str:
         return self.BASE_URL + '&currencyPair=' + pair + '&start=' + str(start_date) + '&end=' + str(

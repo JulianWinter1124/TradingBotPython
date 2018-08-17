@@ -9,7 +9,7 @@ class Neural():
         from keras.callbacks import History, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
         self.overwrite = overwrite
         self.batch_size = batch_size  # how much data is processed at once
-        self.filepath = 'data/training/LSTM_' + model_name + '.h5'
+        self.filepath = 'data/training/LSTM_' + model_name + '.hdf5'
         self.output_size = output_size
         self.model: Sequential = None
         # From https://www.kaggle.com/cbryant/keras-cnn-with-pseudolabeling-0-1514-lb/ might need tuning
@@ -47,7 +47,7 @@ class Neural():
                                      shuffle=shuffle)
         return history
 
-    def train_model_generator(self, generator, steps_per_epoch, epochs, use_multiprocessing=False, workers=2): #mp not on windows LUL
+    def train_model_generator(self, generator, steps_per_epoch, epochs, use_multiprocessing=True, workers=4): #mp not on windows LUL
         history = self.model.fit_generator(generator=generator, steps_per_epoch=steps_per_epoch, epochs=epochs, use_multiprocessing=use_multiprocessing, workers=workers)
         return history
 
