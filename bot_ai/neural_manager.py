@@ -25,14 +25,21 @@ class NeuralManager():
     def run(self):
         finished_data_file = self.read_finished_data_file()
         pairs = finished_data_file.keys()
-        for pair in pairs:
-            self.neural_instances[pair] = Neural(pair, overwrite=self.overwrite_models, batch_size=self.batch_size, output_size=self.output_size, n_in=self.n_in, n_out=self.n_out, n_features=self.n_features, layer_units=self.layer_units, activation_function=self.activation_function, loss_function=self.loss_function, optimizer=self.optimizer)
-        #pickling horror incoming?
+        res = []
         with mp.Pool(processes=4) as pool:
-            res = pool.starmap_async(func=data_downloader, iterable=param_list)
+            for pair in pairs:
+                self.neural_instances[pair] = Neural(pair, overwrite=self.overwrite_models, batch_size=self.batch_size,
+                                                     output_size=self.output_size, n_in=self.n_in, n_out=self.n_out,
+                                                     n_features=self.n_features, layer_units=self.layer_units,
+                                                     activation_function=self.activation_function,
+                                                     loss_function=self.loss_function, optimizer=self.optimizer)
+                res.append(pool.aplly_async(func=self.neural_instances[pair].load_or_build_model))
             pool.close()
             pool.join()
-        results = res.get(timeout=None)
+        for result in res:
+            result.get()
+        #pickling horror incoming?
+
 
 
 
