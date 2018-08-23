@@ -71,7 +71,7 @@ class DataGenerator:
 
     def read_data_and_labels_from_finished_data_file(self, dset_name, n_in, n_features):
         """
-        loads ALL data from a dataset in finished_data.h5 to memeory and returns it
+        loads ALL data from a dataset in finished_data.h5 to memory and returns it
         :param dset_name:
         :param n_in:
         :param n_features:

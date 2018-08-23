@@ -4,7 +4,7 @@ import os
 
 class Neural():
 
-    def __init__(self, model_name, overwrite, batch_size, output_size, n_in, n_out, n_features, layer_units=[30, 20], activation_function='LeakyReLU', loss_function='LeakyReLU', optimizer='adam'):
+    def __init__(self, model_name, overwrite, batch_size, output_size, n_in, n_out, n_features, layer_units=[30, 20], activation_function='LeakyReLU', loss_function='mse', optimizer='adam'):
         self.optimizer = optimizer
         self.loss_function = loss_function
         self.n_out = n_out
@@ -13,7 +13,7 @@ class Neural():
         self.n_in = n_in
         self.n_features = n_features
         from keras.models import Sequential
-        from keras.callbacks import History, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
+        from keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
         self.overwrite = overwrite
         self.batch_size = batch_size  # how much data is processed at once
         self.filepath = 'data/training/LSTM_' + model_name + '.hdf5'
@@ -27,21 +27,25 @@ class Neural():
 
     def load_or_build_model(self):
         from keras.models import Sequential, load_model
-        from keras.layers import Dense, Activation, LSTM, Dropout, LeakyReLU, regularizers, Flatten
+        from keras.layers import Dense, Activation, LSTM, Dropout, LeakyReLU, Flatten
         if self.overwrite or not os.path.isfile(self.filepath):  # Is there no existing model?
             self.model = Sequential()
             self.model.add(LSTM(units=self.layer_units[0], input_shape=(self.n_in, self.n_features), return_sequences=True))
-            self.model.add(Activation(self.activation_function))
+            if self.activation_function == 'LeakyReLU':
+                self.model.add(LeakyReLU(alpha=.001))
+            else:
+                self.model.add(Activation(self.activation_function))
             self.model.add(Dropout(0.2))
             for i in range(1, len(self.layer_units)):
                 self.model.add(LSTM(units=self.layer_units[i], input_shape=(self.n_in, self.n_features), return_sequences=True))
                 self.model.add(Dropout(0.2))
             self.model.add(Flatten())
-            self.model.add(Dense(self.n_out+1))
+            self.model.add(Dense(self.output_size))
             self.model.compile(loss=self.loss_function, optimizer=self.optimizer)
             self.model.save(self.filepath, True)
         else:
             self.model = load_model(self.filepath)
+        self.model.summary()
 
     def train_model(self, train_X, train_Y, test_X, test_Y, epochs, shuffle=False, save=True):
         if save:
