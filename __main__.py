@@ -18,7 +18,7 @@ if __name__ == '__main__':
     try:
         while True:
             exec_time = tradingbot.run(state)
-            print('Loop execution took:', exec_time, 'seconds. Waiting %f seconds.' % max(minimum_loop_time-exec_time, 0))
+            print('Loop execution took:', exec_time, 'seconds. Waiting %f seconds. (It is safe to force shutdown now)' % max(minimum_loop_time-exec_time, 0))
             time.sleep(max(minimum_loop_time-exec_time, 0))
 
     except KeyboardInterrupt:

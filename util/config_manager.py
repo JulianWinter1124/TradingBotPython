@@ -46,14 +46,15 @@ class BotConfigManager(ConfigManager):
         self.config.set('filenames', 'finished_data_filepath', 'data/finished_data.h5')
 
     def load_collector_settings(self): #TODO: placeholder implementation
-        return 'data/unmodified_data.h5', ['USDT_BTC', 'USDT_ETH', 'BTC_XRP'], [1503446400, 1503446400, 1503446400], [9999999999, 9999999999, 1506446400], [300, 300, 300], False
+        #return 'data/unmodified_data.h5', ['USDT_BTC', 'USDT_ETH', 'BTC_XRP'], [1503446400, 1503446400, 1503446400], [9999999999, 9999999999, 1506446400], [300, 300, 300], False
+        return 'data/unmodified_data.h5', ['USDT_BTC', 'USDT_ETH'], [1503446400, 1503446400], [9999999999, 9999999999], [300, 300], False
 
     def load_processor_settings(self): #TODO: placeholder implementation
-        return 'data/unmodified_data.h5', 'data/finished_data.hdf5', True, True, [], [0], 20, 3
+        return 'data/unmodified_data.h5', 'data/finished_data.hdf5', True, True, [], [0], 20, 5
 
     def load_neural_manager_settings(self):
         #return finished_data_filepath, overwrite_models, batch_size, output_size, n_in, n_out, n_features, layer_units=[30, 20], activation_function='LeakyReLU', loss_function='LeakyReLU', optimizer='adam'
-        return 'data/finished_data.hdf5', True, 64, 3+1, 20, 3, 6 + 8 - 0, [30, 20], 'LeakyReLU', 'mse', 'adam'
+        return 'data/finished_data.hdf5', False, 64, 5+1, 20, 5, 6 + 8 - 0, [30, 20], 'LeakyReLU', 'mse', 'adam'
 
 
 
