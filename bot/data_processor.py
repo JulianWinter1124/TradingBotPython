@@ -134,6 +134,9 @@ class DataProcessor():
         if not self._scaler is None:
             return self._scaler[dset_name]
 
+    def get_scaler_dict(self):
+        return self._scaler
+
     def update_completed_and_scaler(self):
         database = self.read_h5py_database_file()
         #n_completed is already 0 by default TODO: maybe save progress

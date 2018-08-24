@@ -83,6 +83,12 @@ class DataCollector(): #TODO: drop columns
             end_date) + '&period=' + str(
             time_period)
 
+    def get_maximum_latest_date(self):
+        """
+        Reads all latest dates and returns the latest of those
+        """
+        return max(self.last_dates)
+
 def data_downloader(pair, last_date, end_date, time_period):
     """
     The worker methods which collects crypto data for the given pair and puts it back to queue

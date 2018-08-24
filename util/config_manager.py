@@ -52,9 +52,12 @@ class BotConfigManager(ConfigManager):
     def load_processor_settings(self): #TODO: placeholder implementation
         return 'data/unmodified_data.h5', 'data/finished_data.hdf5', True, True, [], [0], 20, 5
 
-    def load_neural_manager_settings(self):
+    def load_neural_manager_settings(self): #TODO: placeholder implementation
         #return finished_data_filepath, overwrite_models, batch_size, output_size, n_in, n_out, n_features, layer_units=[30, 20], activation_function='LeakyReLU', loss_function='LeakyReLU', optimizer='adam'
-        return 'data/finished_data.hdf5', False, 64, 5+1, 20, 5, 6 + 8 - 0, [30, 20], 'LeakyReLU', 'mse', 'adam'
+        return 'data/unmodified_data.h5', 'data/finished_data.hdf5', False, 64, 5+1, 20, 5, 6 + 8 - 0, [30, 20], 'LeakyReLU', 'mse', 'adam'
+
+    def load_latest_training_run(self): #TODO: placeholder implementation
+        return 1535125600
 
 
 
