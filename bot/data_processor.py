@@ -45,6 +45,7 @@ class DataProcessor():
                 selection_array = None
             selection_arrays.append(selection_array)
         param_list = list(zip(database_keys, selection_arrays, self._scaler.values(), repeat(self.use_indicators), repeat(self.use_scaling), repeat(self.drop_data_columns_indices), repeat(self.label_column_indices), repeat(self.n_in), repeat(self.n_out)))
+        param_list = [x for x in param_list if x[1] is not None]
         with mp.Pool(processes=4) as pool:
             res = pool.starmap_async(func=produce_modified_data, iterable=param_list)
             pool.close()
@@ -152,6 +153,7 @@ def produce_modified_data(dset_name, selection_array, scaler, use_indicators, us
     :param queue: the queue in which finished data will be put
     :return: None
     """
+    print(dset_name, selection_array.shape)
     if use_indicators:
         selection_array = dm.add_indicators_to_data(selection_array)
     if use_scaling:

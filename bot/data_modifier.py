@@ -44,10 +44,17 @@ def normalize_data(data, scaler):
         return data
 
 
-def reverse_normalize_incomplete_data(data_column, original_index_in_data, n_features, scaler):
-    data = np.zeros(shape=(len(data_column), n_features))
-    data[:, original_index_in_data] = data_column
-    return scaler.inverse_transform(data)[:, original_index_in_data]
+def reverse_normalize_prediction(prediction, label_index_in_original_data, n_features, scaler):
+    cols = list()
+    print(prediction.shape, n_features)
+    for i in range(prediction.shape[1]):
+        pred_column = prediction[:, i]
+        dummy_data = np.zeros(shape=(prediction.shape[0], n_features))
+        dummy_data[:, label_index_in_original_data] = pred_column
+        scaled_dummy_data = scaler.inverse_transform(dummy_data)
+        cols.append(np.atleast_2d(scaled_dummy_data[:, label_index_in_original_data]))
+    concat = np.concatenate(cols, axis=1)
+    return concat
 
 
 def data_to_supervised_timeseries(data, n_in=1, n_out=1, n_out_jumps=1, drop_columns_indices=[], label_columns_indices=[0]):
@@ -75,28 +82,22 @@ def data_to_supervised_timeseries(data, n_in=1, n_out=1, n_out_jumps=1, drop_col
         concat = concat[n_in:]# NaN is always dropped
     else:
         concat = concat[n_in:-n_out*n_out_jumps]
-    return concat
+    print(concat.shape)
+    return np.atleast_2d(concat)
 
 def data_to_timeseries_without_labels(data, n_in, scaler, drop_columns_indices=[], use_scaling=True, use_indicators=True):
     data = np.delete(data, drop_columns_indices, axis=1)
     selection_array = data[-(n_in+30):, :]
     if use_indicators:  # adding indicators
-        selection_array = np.array(selection_array, dtype='f8')
-        selection_array = add_SMA_indicator_to_data(selection_array, close_index=0, timeperiod=30)  # 1 column
-        selection_array = add_BBANDS_indicator_to_data(selection_array, close_index=0)  # 3 columns
-        selection_array = add_RSI_indicator_to_data(selection_array, close_index=0)  # 1 column
-        selection_array = add_OBV_indicator_to_data(selection_array, close_index=0, volume_index=6)  # 1column
-        selection_array = drop_NaN_rows(selection_array)
+        selection_array = add_indicators_to_data(selection_array)
     if use_scaling:
         if scaler is not None:
             selection_array = normalize_data(selection_array, scaler)
-    print(selection_array.shape)
     cols = list()
     for i in range(n_in, 0, -1):
         cols.append(selection_array[-i, :])
     concat = np.hstack(cols)
-    print(concat.shape)
-    return concat
+    return np.atleast_2d(concat)
 
 def add_indicators_to_data(selection_array):
     """

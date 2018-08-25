@@ -1,6 +1,8 @@
 import h5py
 import multiprocessing as mp
 
+from sklearn.preprocessing import MinMaxScaler
+
 from bot.data_generator import DataGenerator
 from bot_ai.neural import Neural
 
@@ -47,7 +49,7 @@ class NeuralManager():
             neur: Neural = self.neural_instances[pair]
             gen = DataGenerator('data/finished_data.hdf5')
             generator = gen.create_data_generator(pair, batch_size=self.batch_size, n_in=self.n_in, n_features=self.n_features)
-            data, labels = gen.read_data_and_labels_from_finished_data_file('USDT_BTC', n_in=self.n_in,
+            data, labels = gen.read_data_and_labels_from_finished_data_file(pair, n_in=self.n_in,
                                                                             n_features=self.n_features)
             split_i = int(len(data) * 0.9)
             history = neur.train_model(data[0:split_i, :], labels[0:split_i, :], data[split_i:, :], labels[split_i:, :],
@@ -61,8 +63,12 @@ class NeuralManager():
             dset = unmodified_data_file[pair]
             data = dset[:, :]
             nolabels = dm.data_to_timeseries_without_labels(data, self.n_in, scalers[pair], [], True, True)
+            nolabels = nolabels.reshape((nolabels.shape[0], self.n_in, self.n_features))
             neur : Neural = self.neural_instances[pair]
             predictions[pair] = neur.predict(nolabels) #TODO: only okay as long as 'pairs processor = pairs collector'
+            scaler : MinMaxScaler = scalers[pair]
+            predictions[pair] = dm.reverse_normalize_prediction(predictions[pair], 0, self.n_features, scaler)
+            print('predictions for', pair, predictions[pair])
         return predictions
 
 

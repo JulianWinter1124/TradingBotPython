@@ -27,7 +27,7 @@ class TradingBot():
 
             self.data_processor.process_and_save()
 
-            if time.time() - self.latest_training_run > 24 * 60 * 60: #This is a naive day approach
+            if time.time() - self.latest_training_run > 6 * 60 * 60: #Train new all 6 hours
 
                 self.latest_training_run = self.data_collector.get_maximum_latest_date()
 
@@ -46,7 +46,7 @@ class TradingBot():
 
             for key, value in predicitions.items():
 
-                action = decision.decide_action_on_prediction(value, 0.8)
+                action = decision.decide_action_on_prediction(value, key, 0.8)
 
                 print(action)
 
