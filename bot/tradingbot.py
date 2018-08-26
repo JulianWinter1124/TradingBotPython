@@ -1,4 +1,5 @@
 import time
+from collections import defaultdict
 
 from bot.data_collector import DataCollector
 from bot.data_processor import DataProcessor
@@ -16,6 +17,7 @@ class TradingBot():
         self.data_processor = DataProcessor(*self.config_manager.load_processor_settings())
         self.neural_manager = NeuralManager(*self.config_manager.load_neural_manager_settings())
         self.latest_training_run = self.config_manager.load_latest_training_run()
+        self.prediction_history = defaultdict(lambda: list())
 
 
     #execute all task within here
@@ -29,7 +31,7 @@ class TradingBot():
 
             if time.time() - self.latest_training_run > 6 * 60 * 60: #Train new all 6 hours
 
-                self.latest_training_run = self.data_collector.get_maximum_latest_date()
+                self.latest_training_run = max(self.data_collector.get_latest_dates())
 
                 self.neural_manager.train_models()
 
@@ -42,11 +44,13 @@ class TradingBot():
 
             scalers = self.data_processor.get_scaler_dict()
 
-            predicitions = self.neural_manager.make_latest_predictions(scalers)
+            predictions = self.neural_manager.make_latest_predictions(scalers)
 
-            for key, value in predicitions.items():
+            for pair, values in predictions.items():
 
-                action = decision.decide_action_on_prediction(value, key, 0.8)
+                self.prediction_history[pair].append(values)
+
+                action = decision.decide_action_on_prediction(values, pair, 0.8)
 
                 print(action)
 

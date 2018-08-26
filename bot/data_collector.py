@@ -50,13 +50,12 @@ class DataCollector(): #TODO: drop columns
         """
         Reads the pair_data_unmodified.h5 file and checks the latest saved dates
         """
-        if not self.overwrite:  # Otherwise there is no need to update anything
-            with self._read_database_file() as file:
-                for i in range(len(self.currency_pairs)):
-                    dset = file[self.currency_pairs[i]]
-                    if not len(dset) == 0:
-                        date = dset[-1, 1]#TODO: might replace second index with variable
-                        self.last_dates[i] = date + 1
+        with self._read_database_file() as file:
+            for i in range(len(self.currency_pairs)):
+                dset = file[self.currency_pairs[i]]
+                if not len(dset) == 0:
+                    date = dset[-1, 1]#TODO: might replace second index with variable
+                    self.last_dates[i] = date + 1
 
     def _read_database_file(self):
         return h5py.File(self.filepath, libver='latest')
@@ -83,11 +82,25 @@ class DataCollector(): #TODO: drop columns
             end_date) + '&period=' + str(
             time_period)
 
-    def get_maximum_latest_date(self):
-        """
-        Reads all latest dates and returns the latest of those
-        """
-        return max(self.last_dates)
+    def get_latest_dates(self):
+        dates = dict()
+        with self._read_database_file() as file:
+            for i in range(len(self.currency_pairs)):
+                dset = file[self.currency_pairs[i]]
+                if not len(dset) == 0:
+                    date = dset[-1, 1]#TODO: might replace second index with variable
+                    dates[self.currency_pairs[i]] = date
+        file.close()
+        return dates
+
+    def get_latest_date_for_pair(self, pair):
+        date = 0
+        with self._read_database_file() as file:
+            dset = file[pair]
+            if not len(dset) == 0:
+                date = dset[-1, 1]
+        file.close()
+        return date
 
 def data_downloader(pair, last_date, end_date, time_period):
     """

@@ -22,7 +22,7 @@ class Neural():
         # From https://www.kaggle.com/cbryant/keras-cnn-with-pseudolabeling-0-1514-lb/ might need tuning
         self.earlyStopping = EarlyStopping(monitor='val_loss', patience=10, verbose=0, mode='min')
         self.mcp_save = ModelCheckpoint(self.filepath, save_best_only=True, monitor='val_loss', mode='min', verbose=1)
-        self.reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7, verbose=1, min_delta=1e-4,
+        self.reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, verbose=1, min_delta=1e-4,
                                                 mode='min')
 
     def load_or_build_model(self):
