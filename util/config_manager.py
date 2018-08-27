@@ -57,7 +57,7 @@ class BotConfigManager(ConfigManager):
         return 'data/unmodified_data.h5', 'data/finished_data.hdf5', False, 64, 5+1, 20, 5, 6 + 8 - 0, [30, 20], 'LeakyReLU', 'mse', 'adam'
 
     def load_latest_training_run(self): #TODO: placeholder implementation
-        return 1535125600
+        return 1535381196
 
 
 

@@ -50,6 +50,7 @@ def decide_action_on_prediction(pair, pred, state, tanh_risk=0.5):
             j += 1
             continue
         if last_sign != 2 and last_sign != sign:
+            print('better option in the future')
             break #Better option in the future
         last_sign = sign
         win_margin_price = sim.calc_win_margin_price(p1, sign)

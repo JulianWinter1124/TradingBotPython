@@ -111,7 +111,7 @@ class DataProcessor():
             else:
                 print('Pair: ' + pair + 'was not found in' + str(file) + '...creating new dataset')
                 dset = file.create_dataset(pair, shape=(0, 1),
-                                           maxshape=(None, None))  # chunk param is really important
+                                           maxshape=(None, None), dtype='float64')  # chunk param is really important
                 dset.flush()
         database.close()
         file.flush()

@@ -4,7 +4,6 @@ from collections import defaultdict
 from bot.data_collector import DataCollector
 from bot.data_processor import DataProcessor
 from bot_ai.neural_manager import NeuralManager
-from util import botstate
 from util.config_manager import BotConfigManager
 from bot_ai import decision
 
@@ -40,7 +39,7 @@ class TradingBot():
                 self.data_processor.process_and_save()
 
             else:
-                print('skipping training because no day has passed since')
+                print('skipping training because not enough time has passed since')
 
             scalers = self.data_processor.get_scaler_dict()
 
@@ -50,7 +49,7 @@ class TradingBot():
 
                 self.prediction_history[pair].append(values)
 
-                action = decision.decide_action_on_prediction(values, pair, 0.8)
+                action = decision.decide_action_on_prediction(pair, values, None, 0.8)
 
                 print(action)
 

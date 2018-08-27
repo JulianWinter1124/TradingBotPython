@@ -75,6 +75,7 @@ class NeuralManager():
         for pair in unmodified_data_file.keys(): #TODO: Change this to finished data, if processor changes behavior
             dset = unmodified_data_file[pair]
             data = dset[:, :]
+            date = data[-1, 1]
             nolabels = dm.data_to_timeseries_without_labels(data, self.n_in, scalers[pair], [], True, True)
             nolabels = nolabels.reshape((nolabels.shape[0], self.n_in, self.n_features))
             neur : Neural = self.neural_instances[pair]
@@ -82,7 +83,7 @@ class NeuralManager():
             if use_scaling:
                 scaler : MinMaxScaler = scalers[pair]
                 predictions[pair] = dm.reverse_normalize_prediction(predictions[pair], 0, self.n_features, scaler)
-            print('predictions for', pair, predictions[pair])
+            print('predictions for', date, pair, predictions[pair])
         return predictions
 
 
