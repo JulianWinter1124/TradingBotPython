@@ -31,7 +31,8 @@ class DataProcessor():
 
     def process_and_save(self):
         """
-        The main loop of data_processor. Starts all subprocesses for each dataset and saves their modified data in the specific datset in finished_data.h5
+        Processes all data in unmodified_data.h5 by scaling and appending all indicators to the data.
+        Saves everything by pairname to modified_data.h5
         """
         database = self.read_h5py_database_file()
         selection_arrays = []
@@ -75,17 +76,12 @@ class DataProcessor():
         """
         :return: The number of columns for a single point in time, including indicator column number if present
         """
-        # data = self.read_h5py_database_file() #TODO: indicator calc, unmodified column calc
-        # dset = data[data.keys()]
-        # 8=number of columns in pair_data_unmodified
-        if self.use_indicators:
-            return 6 + 8 - len(self.drop_data_columns_indices)  # 6=number of indicator columns
-        else:
-            return 8 - len(self.drop_data_columns_indices)
+        return self.use_indicators*6 + 8 - len(self.drop_data_columns_indices)  # 6=number of indicator columns
 
     def get_minimum_data_amount_for_timeseries(self):
         """
-        30*self.use_indicators because some indicators need 30 data points prior to t
+        calculates how many data rows are needed to produce at least one supervised data column
+        30*self.use_indicators because some indicators need 30 data rows
         :return: the minimum data needed to produce at least 1 timestep
         """
         return 30 * self.use_indicators + (self.n_in + self.n_out + 1)  # use_indicators=0 or =1
@@ -101,6 +97,10 @@ class DataProcessor():
         return h5py.File(self.filepath, libver='latest')
 
     def create_h5py_output_file_and_databases(self):
+        """
+        Creates the .h5 datasets in the finished_data.h5 file
+        overwrites file if desired
+        """
         directory.ensure_directory(self.filepath)
         file = h5py.File(self.filepath, 'w',
                          libver='latest')  # Always overwrite because database might change TODO:change?
@@ -139,6 +139,10 @@ class DataProcessor():
         return self._scaler
 
     def update_completed_and_scaler(self):
+        """
+        loads all existing scalers from the datascaler folder if available.
+        n_completed is not getting updated right now because unmodified data might change
+        """
         database = self.read_h5py_database_file()
         #n_completed is already 0 by default TODO: maybe save progress
         for dset_name in database.keys():

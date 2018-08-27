@@ -61,6 +61,7 @@ class TradingBot():
 
         if state is "PAUSE":
             self.state = "PAUSE"
+            #there is nothing to stop right now, but if there was put it here
 
         return time.time()-start
 

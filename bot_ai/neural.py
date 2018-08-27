@@ -26,6 +26,9 @@ class Neural():
                                                 mode='min')
 
     def load_or_build_model(self):
+        """
+        Loads the model from file or creates one if not existent
+        """
         from keras.models import Sequential, load_model
         from keras.layers import Dense, Activation, LSTM, Dropout, LeakyReLU, Flatten
         if self.overwrite or not os.path.isfile(self.filepath):  # Is there no existing model?
@@ -48,6 +51,17 @@ class Neural():
         self.model.summary()
 
     def train_model(self, train_X, train_Y, test_X, test_Y, epochs, shuffle=False, save=True):
+        """
+        Trains the model with the given data
+        :param train_X:
+        :param train_Y:
+        :param test_X:
+        :param test_Y:
+        :param epochs:
+        :param shuffle:
+        :param save:
+        :return:
+        """
         if save:
             history = self.model.fit(train_X, train_Y, batch_size=self.batch_size, validation_data=(test_X, test_Y),
                                      epochs=epochs, callbacks=[self.mcp_save, self.earlyStopping],

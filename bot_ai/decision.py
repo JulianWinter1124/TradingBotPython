@@ -1,44 +1,44 @@
 import math
 
 import numpy as np
-from keras.losses import mean_squared_error
 
 from bot import simulation as sim, API
 
 
-def make_decision_of_predicition(pred, original_data, close_column_index, risk=0.1):
-    #pred.shape = (len, n_out+1)
-    #1. look how good predicitons have been
-    n_pred = pred.shape[0]
-    n_columns = pred.shape[1]
-    original_selection = original_data[-n_pred-n_columns:, close_column_index]
-    cols = list()
-    for i in range(n_columns):
-        cols.append(np.roll(original_selection, i, axis=0))
-    original_selection = np.hstack(cols)[-n_pred:, :] #original_selection.shape == pred.shape
-    mse = mean_squared_error(original_selection[:-n_columns, :], pred[:-n_columns, :]) #compare only data that is all known
-    #?
-    #compare mse tp safety somehow
-    calc_risk = mse * 1.0 #Make meaningful calculation (Range between 0 and 1) probably min max
-    if calc_risk <= risk: #Buy/Sell
-        #Buy/ Sell amount based on calculated certainity and pred
-        #Maybe Test with Monte-Carlo
-        current_price = original_data[-1, close_column_index]
-        pass
-    else:
-        print("Risk threshold not met")
+# def make_decision_of_predicition(pred, original_data, close_column_index, risk=0.1):
+#     #pred.shape = (len, n_out+1)
+#     #1. look how good predicitons have been
+#     n_pred = pred.shape[0]
+#     n_columns = pred.shape[1]
+#     original_selection = original_data[-n_pred-n_columns:, close_column_index]
+#     cols = list()
+#     for i in range(n_columns):
+#         cols.append(np.roll(original_selection, i, axis=0))
+#     original_selection = np.hstack(cols)[-n_pred:, :] #original_selection.shape == pred.shape
+#     mse = mean_squared_error(original_selection[:-n_columns, :], pred[:-n_columns, :]) #compare only data that is all known
+#     #?
+#     #compare mse tp safety somehow
+#     calc_risk = mse * 1.0 #Make meaningful calculation (Range between 0 and 1) probably min max
+#     if calc_risk <= risk: #Buy/Sell
+#         #Buy/ Sell amount based on calculated certainity and pred
+#         #Maybe Test with Monte-Carlo
+#         current_price = original_data[-1, close_column_index]
+#         pass
+#     else:
+#         print("Risk threshold not met")
 
 
-def decide_action_on_prediction(pred, pair, tanh_risk=0.5):
+def decide_action_on_prediction(pair, pred, state, tanh_risk=0.5):
     """
     Decides on a given predicition what actions to take. This function uses a tanh function to evaluate the distance between loss and win.
     This method does NOT evaluate how likely the predicition is.
+    :param pair: The crypto pair that is being evaluated
     :param pred: The predicition (considered true)
+    :param state: the simulation or real state
     :param tanh_risk: The sigmoid distance to the win margin. Values should be in range tanh(0.5) < tanh_risk < 1, where close to 1 is harder to meet but less risky.
     :return: The action to take in the format: (buy/sell/hold, amount, calculated_tanh_risk)
     """
     action = ('hold', 0, 0) #sell, buy, hold
-    current_price = API.receive_latest_pair_price(pair, 300)
     current_pred = pred[0, :]
     i, j = 0, 1
     last_sign = 2

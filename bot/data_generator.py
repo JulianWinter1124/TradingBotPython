@@ -50,11 +50,11 @@ class DataGenerator:
 
     def create_data_generator(self, dset_name, batch_size, n_in, n_features):
         """
-        Creates a Python generator for finished_data.h5 to use in keras training methods. Unbuffered version
-        :param dset_name:
-        :param batch_size:
-        :param n_in:
-        :param n_features:
+        Creates a Python generator for finished_data.h5 to use in keras training methods.
+        :param dset_name: the pair/dataset name to read from
+        :param batch_size: the desired batch size
+        :param n_in: timesteps back in past
+        :param n_features: feature number of data
         """
         i = 0
         file = self._read_finished_data_file()
@@ -73,9 +73,9 @@ class DataGenerator:
     def read_data_and_labels_from_finished_data_file(self, dset_name, n_in, n_features, shuffled=False):
         """
         loads ALL data from a dataset in finished_data.h5 to memory and returns it
-        :param dset_name:
-        :param n_in:
-        :param n_features:
+        :param dset_name: the pair/dataset name to read from
+        :param n_in: timesteps back in past
+        :param n_features: feature number of data
         :return:
         """
         file = self._read_finished_data_file()
