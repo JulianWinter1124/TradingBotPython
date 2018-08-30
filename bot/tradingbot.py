@@ -31,7 +31,7 @@ class TradingBot():
 
             if time.time() - self.latest_training_run > 6 * 60 * 60: #Train new all 6 hours
 
-                self.latest_training_run = max(self.data_collector.get_latest_dates())
+                self.latest_training_run = max(self.data_collector.get_latest_dates().values())
 
                 self.neural_manager.train_models()
 

@@ -63,11 +63,12 @@ class NeuralManager():
                                        epochs=100, shuffle=True, save=True)  # 'normal' method
             print('finished training for', pair)
 
-    def make_latest_predictions(self, scalers, use_scaling=True):
+    def make_latest_predictions(self, scalers, use_scaling=True, look_back=0):
         """
         make predictions for all existing models, with the newest data available in unmodified_data.h5
         :param use_scaling: boolean if scaling should be used
         :param scalers: the scalers that have been used in data_processor
+        :param look_back; offset from date you look back. 1 = look back 1 date
         :return: the predictions dates as dictionary; dictionary with all the predictions and pairs as key
         """
         predictions = dict()
