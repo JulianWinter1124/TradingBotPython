@@ -102,6 +102,12 @@ class DataCollector(): #TODO: drop columns
         file.close()
         return date
 
+    def get_original_data(self, pair):
+        with self._read_database_file() as file:
+            dset = file[pair]
+            data = dset[:, :]
+        return data
+
 def data_downloader(pair, last_date, end_date, time_period):
     """
     The worker methods which collects crypto data for the given pair and puts it back to queue

@@ -12,7 +12,8 @@ import directory
 
 class DataProcessor():
 
-    def __init__(self, database_filepath, output_filepath, use_indicators=True, use_scaling=True, drop_data_columns_indices: list = [], label_column_indices=[0], n_in=30, n_out=2, overwrite_scaler=False): #TODO: param list of indicators with their paramas!
+    def __init__(self, database_filepath, output_filepath, use_indicators=True, use_scaling=True, drop_data_columns_indices: list = [], label_column_indices=[0], n_in=30, n_out=2, n_out_jumps=1, overwrite_scaler=False): #TODO: param list of indicators with their paramas!
+        self.n_out_jumps = n_out_jumps
         self.n_in = n_in
         self.n_out = n_out
         self.use_scaling = use_scaling
@@ -45,7 +46,7 @@ class DataProcessor():
                 print('not enough data for timeseries calculation', dset_name)
                 selection_array = None
             selection_arrays.append(selection_array)
-        param_list = list(zip(database_keys, selection_arrays, self._scaler.values(), repeat(self.use_indicators), repeat(self.use_scaling), repeat(self.drop_data_columns_indices), repeat(self.label_column_indices), repeat(self.n_in), repeat(self.n_out)))
+        param_list = list(zip(database_keys, selection_arrays, self._scaler.values(), repeat(self.use_indicators), repeat(self.use_scaling), repeat(self.drop_data_columns_indices), repeat(self.label_column_indices), repeat(self.n_in), repeat(self.n_out), repeat(self.n_out_jumps)))
         param_list = [x for x in param_list if x[1] is not None]
         with mp.Pool(processes=4) as pool:
             res = pool.starmap_async(func=produce_modified_data, iterable=param_list)
@@ -150,7 +151,7 @@ class DataProcessor():
 
 
 def produce_modified_data(dset_name, selection_array, scaler, use_indicators, use_scaling, drop_data_columns_indices,
-                                                       label_columns_indices, n_in, n_out):
+                                                       label_columns_indices, n_in, n_out, n_out_jumps):
     """
     Reads the databse continuesly and makes the data ready for training. All data that is ready is put into queue
     :param dset_name: the specific dataset the method should listen to
@@ -165,7 +166,7 @@ def produce_modified_data(dset_name, selection_array, scaler, use_indicators, us
             selection_array, scaler = dm.normalize_data_MinMax(selection_array)
         else:
             selection_array = dm.normalize_data(selection_array, scaler)
-    timeseries_data  = dm.data_to_supervised_timeseries(selection_array, n_in=n_in, n_out=n_out, drop_columns_indices=drop_data_columns_indices,
+    timeseries_data  = dm.data_to_supervised_timeseries(selection_array, n_in=n_in, n_out=n_out, n_out_jumps=n_out_jumps, drop_columns_indices=drop_data_columns_indices,
                                                        label_columns_indices=label_columns_indices)
     print(timeseries_data.shape)
     return (dset_name, scaler, timeseries_data)

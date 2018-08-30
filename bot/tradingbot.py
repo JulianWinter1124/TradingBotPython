@@ -3,6 +3,7 @@ from collections import defaultdict
 
 from bot.data_collector import DataCollector
 from bot.data_processor import DataProcessor
+from bot.prediction_history import PredictionHistory
 from bot_ai.neural_manager import NeuralManager
 from util.config_manager import BotConfigManager
 from bot_ai import decision
@@ -15,8 +16,8 @@ class TradingBot():
         self.data_collector = DataCollector(*self.config_manager.load_collector_settings())
         self.data_processor = DataProcessor(*self.config_manager.load_processor_settings())
         self.neural_manager = NeuralManager(*self.config_manager.load_neural_manager_settings())
+        self.prediction_history = PredictionHistory('data/history.pickle')
         self.latest_training_run = self.config_manager.load_latest_training_run()
-        self.prediction_history = defaultdict(lambda: list())
 
 
     #execute all task within here
@@ -43,15 +44,18 @@ class TradingBot():
 
             scalers = self.data_processor.get_scaler_dict()
 
-            predictions = self.neural_manager.make_latest_predictions(scalers)
+            dates, predictions = self.neural_manager.make_latest_predictions(scalers)
 
             for pair, values in predictions.items():
 
-                self.prediction_history[pair].append(values)
+                self.prediction_history.add_prediction(pair, dates[pair], values)
+
+                self.prediction_history.plot_prediction_history(pair, self.data_collector.get_original_data(pair), n_out_jumps=1)
 
                 action = decision.decide_action_on_prediction(pair, values, None, 0.8)
 
                 print(action)
+
 
 
 

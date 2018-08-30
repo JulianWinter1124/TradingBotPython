@@ -25,7 +25,7 @@ class Neural():
         self.reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, verbose=1, min_delta=1e-4,
                                                 mode='min')
 
-    def load_or_build_model(self):
+    def load_or_build_model_v0(self):
         """
         Loads the model from file or creates one if not existent
         """
@@ -50,7 +50,32 @@ class Neural():
             self.model = load_model(self.filepath)
         self.model.summary()
 
-    def train_model(self, train_X, train_Y, test_X, test_Y, epochs, shuffle=False, save=True):
+    def load_or_build_model(self):
+        """
+        Loads the model from file or creates one if not existent
+        """
+        from keras.models import Sequential, load_model
+        from keras.layers import Dense, Activation, LSTM, Dropout, LeakyReLU, Flatten
+        if self.overwrite or not os.path.isfile(self.filepath):  # Is there no existing model?
+            self.model = Sequential()
+            for i in range(0, len(self.layer_units)-1):
+                self.model.add(LSTM(units=self.layer_units[i], input_shape=(self.n_in, self.n_features), return_sequences=True))
+                if self.activation_function == 'LeakyReLU':
+                    self.model.add(LeakyReLU(alpha=.001))
+                else:
+                    self.model.add(Activation(self.activation_function))
+                self.model.add(Dropout(0.2))
+            self.model.add(LSTM(units=self.layer_units[-1], input_shape=(self.n_in, self.n_features), return_sequences=True, activation='softmax'))
+            self.model.add(Dropout(0.2))
+            self.model.add(Flatten())
+            self.model.add(Dense(self.output_size))
+            self.model.compile(loss=self.loss_function, optimizer=self.optimizer)
+            self.model.save(self.filepath, True)
+        else:
+            self.model = load_model(self.filepath)
+        self.model.summary()
+
+    def train_model_v0(self, train_X, train_Y, test_X, test_Y, epochs, shuffle=False, save=True):
         """
         Trains the model with the given data
         :param train_X:
@@ -71,6 +96,30 @@ class Neural():
                                      epochs=epochs, callbacks=[self.earlyStopping],
                                      shuffle=shuffle)
         return history
+
+    def train_model(self, train_X, train_Y, test_X, test_Y, epochs, shuffle=False, save=True):
+        """
+        Trains the model with the given data
+        :param train_X:
+        :param train_Y:
+        :param test_X:
+        :param test_Y:
+        :param epochs:
+        :param shuffle:
+        :param save:
+        :return:
+        """
+        if save:
+            history = self.model.fit(train_X, train_Y, batch_size=self.batch_size, validation_split=0.1,
+                                     epochs=epochs, callbacks=[self.mcp_save, self.earlyStopping],
+                                     shuffle=shuffle)
+        else:
+            history = self.model.fit(train_X, train_Y, batch_size=self.batch_size, validation_split=0.1,
+                                     epochs=epochs, callbacks=[self.earlyStopping],
+                                     shuffle=shuffle)
+            self.model.evaluate(test_X, test_Y, batch_size=self.batch_size)
+        return history
+
 
     def train_model_generator(self, generator, steps_per_epoch, epochs, use_multiprocessing=True, workers=4): #mp not on windows LUL
         history = self.model.fit_generator(generator=generator, steps_per_epoch=steps_per_epoch, epochs=epochs, use_multiprocessing=use_multiprocessing, workers=workers)

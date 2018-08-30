@@ -68,14 +68,15 @@ class NeuralManager():
         make predictions for all existing models, with the newest data available in unmodified_data.h5
         :param use_scaling: boolean if scaling should be used
         :param scalers: the scalers that have been used in data_processor
-        :return: dictionary with all the predictions and pairs as key
+        :return: the predictions dates as dictionary; dictionary with all the predictions and pairs as key
         """
         predictions = dict()
+        dates = dict()
         unmodified_data_file = self.read_unmodified_data_file()
         for pair in unmodified_data_file.keys(): #TODO: Change this to finished data, if processor changes behavior
             dset = unmodified_data_file[pair]
             data = dset[:, :]
-            date = data[-1, 1]
+            dates[pair] = data[-1, 1]
             nolabels = dm.data_to_timeseries_without_labels(data, self.n_in, scalers[pair], [], True, True)
             nolabels = nolabels.reshape((nolabels.shape[0], self.n_in, self.n_features))
             neur : Neural = self.neural_instances[pair]
@@ -83,8 +84,8 @@ class NeuralManager():
             if use_scaling:
                 scaler : MinMaxScaler = scalers[pair]
                 predictions[pair] = dm.reverse_normalize_prediction(predictions[pair], 0, self.n_features, scaler)
-            print('predictions for', date, pair, predictions[pair])
-        return predictions
+            print('predictions for', dates[pair], pair, predictions[pair])
+        return dates, predictions
 
 
 
