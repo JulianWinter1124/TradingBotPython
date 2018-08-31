@@ -38,7 +38,7 @@ def decide_action_on_prediction(pair, pred, state, tanh_risk=0.5):
     :param tanh_risk: The sigmoid distance to the win margin. Values should be in range tanh(0.5) < tanh_risk < 1, where close to 1 is harder to meet but less risky.
     :return: The action to take in the format: (buy/sell/hold, amount, calculated_tanh_risk)
     """
-    action = ('hold', 0, 0) #sell, buy, hold
+    action = (pair, 'hold', 0, 0) #sell, buy, hold
     current_pred = pred[0, :]
     i, j = 0, 1
     last_sign = 2

@@ -33,10 +33,12 @@ class PredictionHistory():
         prediction_data = self.history[pair]
         n = len(prediction_data.keys())
         plt.figure(figsize=(16,12))
-        plt.plot(original_data[-(n+100):, date_column], original_data[-(n+100):, close_column], label='Original')
+        plt.plot(original_data[-(n+1000):, date_column], original_data[-(n+1000):, close_column], label='Original')
         for date in sorted(prediction_data.keys()):
-            dates = np.arange(date, date + timesteps*n_out_jumps*len(prediction_data[date][0]), timesteps*n_out_jumps)
-            plt.plot(dates, prediction_data[date][0]) #both are 2D arrays
+            starting_date = date + timesteps*n_out_jumps
+            dates = np.arange(starting_date, starting_date + timesteps*n_out_jumps*len(prediction_data[date][0]), timesteps*n_out_jumps)
+            predictions = prediction_data[date][0]
+            plt.plot(dates, predictions) #both are 2D arrays
         plt.legend(loc='best')
         plt.show()
 
@@ -49,3 +51,7 @@ class PredictionHistory():
     def save_to_file(self):
         with open(self.filepath, 'wb') as handle:
             pickle.dump(self.history, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    def clear_history(self):
+        del self.history
+        self.history = dict()

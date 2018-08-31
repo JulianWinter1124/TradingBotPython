@@ -25,39 +25,38 @@ class TradingBot():
         start = time.time()
         if state is 'RUN':
             self.state = "RUN"
-            self.data_collector.download_and_save()
+            self.data_collector.download_and_save() #collect latest data for all pairs
 
-            self.data_processor.process_and_save()
+            self.data_processor.process_and_save() #process data into train-ready data
 
             if time.time() - self.latest_training_run > 6 * 60 * 60: #Train new all 6 hours
 
-                self.latest_training_run = max(self.data_collector.get_latest_dates().values())
+                self.latest_training_run = time.time() #save when latest training run was executed
 
-                self.neural_manager.train_models()
+                self.neural_manager.train_models(plot_history=True) #Train all models (data in train-ready file)
 
-                self.data_collector.download_and_save()
+                self.data_collector.download_and_save() #update data (training took some time)
 
                 self.data_processor.process_and_save()
 
             else:
                 print('skipping training because not enough time has passed since')
 
-            scalers = self.data_processor.get_scaler_dict()
+            scalers = self.data_processor.get_scaler_dict() #loads the scaler from the data processor
 
-            dates, predictions = self.neural_manager.make_latest_predictions(scalers)
+            dates, predictions = self.neural_manager.make_latest_predictions(scalers, look_back=0) #make latest predictions for latest data column (unmodified_data)
 
             for pair, values in predictions.items():
 
-                self.prediction_history.add_prediction(pair, dates[pair], values)
+                self.prediction_history.add_prediction(pair, dates[pair], values) #add prediction to the history
 
-                self.prediction_history.plot_prediction_history(pair, self.data_collector.get_original_data(pair), n_out_jumps=1)
+                self.prediction_history.plot_prediction_history(pair, self.data_collector.get_original_data(pair), n_out_jumps=1) #plot all predictions from history
 
-                action = decision.decide_action_on_prediction(pair, values, None, 0.8)
+                action = decision.decide_action_on_prediction(pair, values, None, 0.8) #Decide which action to take base on prediction
 
                 print(action)
 
-
-
+                #state.perform_action(action=action) #Perform the given action.
 
 
 

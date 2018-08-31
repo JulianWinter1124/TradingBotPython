@@ -91,6 +91,12 @@ class Simulation:
     def extract_currency_to_buy_from_pair(self, pair):
         return pair.split('_')[0]
 
+    def perform_action(self, action):
+        pair, actionstr, amount, tanhrisk = action
+        if actionstr is 'buy':
+            self.buy_with_amount(pair, amount)
+            #TODO continue
+
 
 #End of class
 
