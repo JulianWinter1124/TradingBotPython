@@ -70,7 +70,7 @@ class DataGenerator:
             s_data = s_data.reshape((s_data.shape[0], n_in, n_features))
             yield (s_data, s_labels)
 
-    def read_data_and_labels_from_finished_data_file(self, dset_name, n_in, n_features, shuffled=False):
+    def read_data_and_labels_from_finished_data_file(self, dset_name, n_in, n_features):
         """
         loads ALL data from a dataset in finished_data.h5 to memory and returns it
         :param dset_name: the pair/dataset name to read from
@@ -80,13 +80,9 @@ class DataGenerator:
         """
         file = self._read_finished_data_file()
         dset = file[dset_name]
-        print(dset.shape)
         s_data, s_labels = dset[:, :n_in * n_features], dset[:, n_in * n_features:]
         s_data = s_data.reshape((s_data.shape[0], n_in, n_features))
-        if shuffled:
-            return shuffle(s_data, s_labels)
-        else:
-            return s_data, s_labels
+        return s_data, s_labels
 
     def read_data_from_database_file(self, dset_name):
         with self._read_file('data/pair_data_unmodified.h5') as file:

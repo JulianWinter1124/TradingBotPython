@@ -16,8 +16,7 @@ class TradingBot():
         self.data_collector = DataCollector(*self.config_manager.load_collector_settings())
         self.data_processor = DataProcessor(*self.config_manager.load_processor_settings())
         self.neural_manager = NeuralManager(*self.config_manager.load_neural_manager_settings())
-        self.prediction_history = PredictionHistory('data/history.pickle')
-        self.latest_training_run = self.config_manager.load_latest_training_run()
+        self.prediction_history = PredictionHistory(*self.config_manager.load_prediction_history_settings())
 
 
     #execute all task within here
@@ -29,9 +28,9 @@ class TradingBot():
 
             self.data_processor.process_and_save() #process data into train-ready data
 
-            if time.time() - self.latest_training_run > 6 * 60 * 60: #Train new all 6 hours
+            if time.time() - self.config_manager.latest_training_run > 6 * 60 * 60: #Train new all 6 hours
 
-                self.latest_training_run = time.time() #save when latest training run was executed
+                self.config_manager.latest_training_run = time.time() #save when latest training run was executed
 
                 self.neural_manager.train_models(plot_history=True) #Train all models (data in train-ready file)
 
@@ -50,7 +49,7 @@ class TradingBot():
 
                 self.prediction_history.add_prediction(pair, dates[pair], values) #add prediction to the history
 
-                self.prediction_history.plot_prediction_history(pair, self.data_collector.get_original_data(pair), n_out_jumps=1) #plot all predictions from history
+                self.prediction_history.plot_prediction_history(pair, self.data_collector.get_original_data(pair)) #plot all predictions from history
 
                 action = decision.decide_action_on_prediction(pair, values, None, 0.8) #Decide which action to take base on prediction
 
@@ -68,7 +67,7 @@ class TradingBot():
         return time.time()-start
 
     def perform_shutdown(self):
-        #do stuff
+        self.config_manager.save_config()
         print("shutting down")
         raise SystemExit
 

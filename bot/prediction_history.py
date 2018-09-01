@@ -10,12 +10,14 @@ import directory
 
 class PredictionHistory():
 
-    def __init__(self, filepath):
+    def __init__(self, filepath, timesteps, date_column, close_column, n_out_jumps):
+        self.timesteps = timesteps
+        self.n_out_jumps = n_out_jumps
+        self.close_column = close_column
+        self.date_column = date_column
         self.history : dict = dict()
         self.filepath = directory.get_absolute_path(filepath)
         self.load_from_file()
-        pass
-
 
     def add_prediction(self, pair, prediction_date, prediction):
         if pair in  self.history:
@@ -29,14 +31,14 @@ class PredictionHistory():
             self.history[pair][prediction_date] = prediction
         self.save_to_file()
 
-    def plot_prediction_history(self, pair, original_data, date_column=1, close_column=0, timesteps=1800, n_out_jumps=1):
+    def plot_prediction_history(self, pair, original_data):
         prediction_data = self.history[pair]
         n = len(prediction_data.keys())
         plt.figure(figsize=(16,12))
-        plt.plot(original_data[-(n+1000):, date_column], original_data[-(n+1000):, close_column], label='Original')
+        plt.plot(original_data[-(n+100):, self.date_column], original_data[-(n+100):, self.close_column], label='Original')
         for date in sorted(prediction_data.keys()):
-            starting_date = date + timesteps*n_out_jumps
-            dates = np.arange(starting_date, starting_date + timesteps*n_out_jumps*len(prediction_data[date][0]), timesteps*n_out_jumps)
+            starting_date = date + self.timesteps*self.n_out_jumps
+            dates = np.arange(starting_date, starting_date + self.timesteps*self.n_out_jumps*len(prediction_data[date][0]), self.timesteps*self.n_out_jumps)
             predictions = prediction_data[date][0]
             plt.plot(dates, predictions) #both are 2D arrays
         plt.legend(loc='best')

@@ -60,7 +60,7 @@ class NeuralManager():
             gen = DataGenerator('data/finished_data.hdf5')
             #generator = gen.create_data_generator(pair, batch_size=self.batch_size, n_in=self.n_in, n_features=self.n_features)
             data, labels = gen.read_data_and_labels_from_finished_data_file(pair, n_in=self.n_in,
-                                                                            n_features=self.n_features, shuffled=False) #, n_completed=self.n_completed[pair]) #shuffled and n_completed is still to be tested
+                                                                            n_features=self.n_features)
             split_i = int(len(data) * 0.9)
             history = neur.train_model(data[0:split_i, :], labels[0:split_i, :], data[split_i:, :], labels[split_i:, :],
                                        epochs=self.epochs, shuffle=True, save=True)  # 'normal' method

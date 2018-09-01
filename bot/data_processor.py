@@ -12,7 +12,7 @@ import directory
 
 class DataProcessor():
 
-    def __init__(self, database_filepath, output_filepath, use_indicators=True, use_scaling=True, drop_data_columns_indices: list = [], label_column_indices=[0], n_in=30, n_out=2, n_out_jumps=1, overwrite_scaler=False): #TODO: param list of indicators with their paramas!
+    def __init__(self, database_filepath, output_filepath, use_indicators, use_scaling, drop_data_columns_indices, label_column_indices, n_in, n_out, n_out_jumps, overwrite_scaler): #TODO: param list of indicators with their paramas!
         self.n_out_jumps = n_out_jumps
         self.n_in = n_in
         self.n_out = n_out
@@ -26,9 +26,8 @@ class DataProcessor():
         self.n_completed = defaultdict(lambda : 0)
         self.overwrite_scaler = overwrite_scaler
         self.scaler_base_filepath = directory.get_absolute_path('datascaler/')
-        self.create_h5py_output_file_and_databases()
-        self.update_completed_and_scaler()
-        #TODO: maybe make currencies selectable instead of just taking all
+        self.create_h5py_output_file_and_databases() #Create all databases
+        self.update_completed_and_scaler() #Update completed counter and scalers if existend
 
     def process_and_save(self):
         """
@@ -136,7 +135,7 @@ class DataProcessor():
         if not self._scaler is None:
             return self._scaler[dset_name]
 
-    def get_scaler_dict(self):
+    def get_scaler_dict(self) -> dict:
         return self._scaler
 
     def update_completed_and_scaler(self):
@@ -148,6 +147,7 @@ class DataProcessor():
         #n_completed is already 0 by default TODO: maybe save progress
         for dset_name in database.keys():
             self._scaler[dset_name] = self._load_scaler(dset_name)
+        database.close()
 
 
 def produce_modified_data(dset_name, selection_array, scaler, use_indicators, use_scaling, drop_data_columns_indices,
@@ -168,7 +168,6 @@ def produce_modified_data(dset_name, selection_array, scaler, use_indicators, us
             selection_array = dm.normalize_data(selection_array, scaler)
     timeseries_data  = dm.data_to_supervised_timeseries(selection_array, n_in=n_in, n_out=n_out, n_out_jumps=n_out_jumps, drop_columns_indices=drop_data_columns_indices,
                                                        label_columns_indices=label_columns_indices)
-    print(timeseries_data.shape)
     return (dset_name, scaler, timeseries_data)
 
 

@@ -1,5 +1,6 @@
 import multiprocessing as mp
 import logging
+from itertools import repeat
 
 import h5py
 
@@ -10,11 +11,11 @@ import directory
 class DataCollector(): #TODO: drop columns
 
     def __init__(self, relative_filepath, currency_pairs=['BTC_USDT'], start_dates=[1405699200],
-                 end_dates=[9999999999], time_periods=[300], overwrite=False, log_level=logging.INFO):
+                 end_dates=[9999999999], time_period=300, overwrite=False):
         self.filepath = directory.get_absolute_path(relative_filepath)
         directory.ensure_directory(self.filepath)
         self.BASE_URL = 'https://poloniex.com/public?command=returnChartData'
-        self.time_periods = time_periods
+        self.time_period = time_period
         self.currency_pairs = currency_pairs
         self.start_dates = start_dates
         self.last_dates = start_dates  # The last dates that had data available
@@ -26,7 +27,7 @@ class DataCollector(): #TODO: drop columns
 
     def download_and_save(self):
         self._update_latest_dates()
-        param_list = list(zip(self.currency_pairs, self.last_dates, self.end_dates, self.time_periods))
+        param_list = list(zip(self.currency_pairs, self.last_dates, self.end_dates, repeat(self.time_period)))
         with mp.Pool(processes=4) as pool:
             res = pool.starmap_async(func=data_downloader, iterable=param_list)
             pool.close()
