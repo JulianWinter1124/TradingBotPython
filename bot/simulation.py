@@ -92,7 +92,7 @@ class Simulation:
         return pair.split('_')[0]
 
     def perform_action(self, action):
-        pair, actionstr, amount, tanhrisk = action
+        pair, actionstr, amount, stop_loss = action
         if actionstr is 'buy':
             self.buy_with_amount(pair, amount)
             #TODO continue

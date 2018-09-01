@@ -127,7 +127,7 @@ class DataProcessor():
 
     def _save_scaler(self, dset_name):
         path = self.scaler_base_filepath + dset_name + '_scaler.save'
-        print(path)
+        print('Saving scaler to:', path)
         directory.ensure_directory(path)
         joblib.dump(self._scaler[dset_name], path)
 
@@ -146,7 +146,10 @@ class DataProcessor():
         database = self.read_h5py_database_file()
         #n_completed is already 0 by default TODO: maybe save progress
         for dset_name in database.keys():
-            self._scaler[dset_name] = self._load_scaler(dset_name)
+            if not self.overwrite_scaler:
+                self._scaler[dset_name] = self._load_scaler(dset_name)
+            else:
+                self._scaler[dset_name] = None
         database.close()
 
 
@@ -163,7 +166,8 @@ def produce_modified_data(dset_name, selection_array, scaler, use_indicators, us
         selection_array = dm.add_indicators_to_data(selection_array)
     if use_scaling:
         if scaler is None:
-            selection_array, scaler = dm.normalize_data_MinMax(selection_array)
+            #selection_array, scaler = dm.normalize_data_MinMax(selection_array)
+            selection_array, scaler = dm.normalize_data_Standard(selection_array)
         else:
             selection_array = dm.normalize_data(selection_array, scaler)
     timeseries_data  = dm.data_to_supervised_timeseries(selection_array, n_in=n_in, n_out=n_out, n_out_jumps=n_out_jumps, drop_columns_indices=drop_data_columns_indices,

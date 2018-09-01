@@ -64,9 +64,9 @@ class Neural():
                     self.model.add(LeakyReLU(alpha=.001))
                 else:
                     self.model.add(Activation(self.activation_function))
-                self.model.add(Dropout(0.2))
+                self.model.add(Dropout(0.1))
             self.model.add(LSTM(units=self.layer_units[-1], input_shape=(self.n_in, self.n_features), return_sequences=True, activation='softmax'))
-            self.model.add(Dropout(0.2))
+            self.model.add(Dropout(0.1))
             self.model.add(Flatten())
             self.model.add(Dense(self.output_size))
             self.model.compile(loss=self.loss_function, optimizer=self.optimizer)
@@ -75,29 +75,7 @@ class Neural():
             self.model = load_model(self.filepath)
         self.model.summary()
 
-    def train_model_v0(self, train_X, train_Y, test_X, test_Y, epochs, shuffle=False, save=True):
-        """
-        Trains the model with the given data
-        :param train_X:
-        :param train_Y:
-        :param test_X:
-        :param test_Y:
-        :param epochs:
-        :param shuffle:
-        :param save:
-        :return:
-        """
-        if save:
-            history = self.model.fit(train_X, train_Y, batch_size=self.batch_size, validation_data=(test_X, test_Y),
-                                     epochs=epochs, callbacks=[self.mcp_save, self.earlyStopping],
-                                     shuffle=shuffle)
-        else:
-            history = self.model.fit(train_X, train_Y, batch_size=self.batch_size, validation_data=(test_X, test_Y),
-                                     epochs=epochs, callbacks=[self.earlyStopping],
-                                     shuffle=shuffle)
-        return history
-
-    def train_model(self, train_X, train_Y, test_X, test_Y, epochs, shuffle=False, save=True):
+    def train_model(self, train_X, train_Y, test_X, test_Y, epochs, shuffle=True, save=True):
         """
         Trains the model with the given data
         :param train_X:
