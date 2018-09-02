@@ -16,8 +16,8 @@ class BotConfigManager():
         return self.unmodified_data_filepath, self.finished_data_filepath, self.use_indicators, self.use_scaling, self.drop_data_column_indices, self.data_label_column_indices, self.n_in, self.n_out, self.n_out_jumps, self.overwrite_scalers
 
     def load_neural_manager_settings(self): #TODO: placeholder implementation
-        #return finished_data_filepath, overwrite_models, batch_size, epochs, output_size, n_in, n_out, n_features, use_scaling, layer_units=[30, 20], activation_function='LeakyReLU', loss_function='LeakyReLU', optimizer='adam'
-        return self.unmodified_data_filepath, self.finished_data_filepath, self.overwrite_models, self.batch_size, self.epochs, self.n_out + 1, self.n_in, self.n_out, self.n_features, self.use_scaling, self.layer_sizes_list, self.activation_function, self.loss_function, self.optimizer
+        #return finished_data_filepath, overwrite_models, batch_size, epochs, output_size, n_in, n_out, n_features, use_scaling, use_indicators, layer_units=[30, 20], activation_function='LeakyReLU', loss_function='LeakyReLU', optimizer='adam'
+        return self.unmodified_data_filepath, self.finished_data_filepath, self.overwrite_models, self.batch_size, self.epochs, self.n_out + 1, self.n_in, self.n_out, self.n_features, self.use_scaling, self.use_indicators, self.layer_sizes_list, self.activation_function, self.loss_function, self.optimizer
 
 
     def load_latest_training_run(self): #TODO: placeholder implementation
@@ -25,15 +25,15 @@ class BotConfigManager():
 
 
     def load_prediction_history_settings(self):
-        #filepath, timesteps, date_column, close_column, n_out_jumps
-        return self.prediction_history_filepath, self.timesteps, self.data_date_column_indice, self.data_label_column_indices[0], self.n_out_jumps
+        #filepath, timesteps, date_column, close_column, n_out_jumps, overwrite_history
+        return self.prediction_history_filepath, self.timesteps, self.data_date_column_indice, self.data_label_column_indices[0], self.n_out_jumps, self.overwrite_history
 
     def init_variables(self):
         self.unmodified_data_filepath = 'data/unmodified_data.h5'
         self.finished_data_filepath = 'data/finished_data.hdf5'
         self.prediction_history_filepath = 'data/prediction_history.pickle'
         self.pairs = ['USDT_BTC', 'USDT_ETH']
-        self.start_dates = [1503446400, 1503446400]
+        self.start_dates = [1483225200, 1483225200]
         self.end_dates = [9999999999, 9999999999]
         self.timesteps = 300
         self.drop_data_column_indices = []
@@ -42,11 +42,12 @@ class BotConfigManager():
         self.n_in = 20
         self.n_out = 4
         self.n_out_jumps = 1
-        self.redownload_data = False
+        self.redownload_data = True
         self.use_scaling = True
-        self.overwrite_scalers = True
+        self.overwrite_scalers = False
         self.use_indicators = True
-        self.overwrite_models = True
+        self.overwrite_models = False
+        self.overwrite_history = self.overwrite_models
         self.batch_size = 100
         self.epochs = 50
         self.n_features = 6 + 8 * self.use_indicators - len(self.drop_data_column_indices)

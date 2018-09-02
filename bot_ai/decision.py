@@ -5,29 +5,6 @@ import numpy as np
 from bot import simulation as sim, API
 
 
-# def make_decision_of_predicition(pred, original_data, close_column_index, risk=0.1):
-#     #pred.shape = (len, n_out+1)
-#     #1. look how good predicitons have been
-#     n_pred = pred.shape[0]
-#     n_columns = pred.shape[1]
-#     original_selection = original_data[-n_pred-n_columns:, close_column_index]
-#     cols = list()
-#     for i in range(n_columns):
-#         cols.append(np.roll(original_selection, i, axis=0))
-#     original_selection = np.hstack(cols)[-n_pred:, :] #original_selection.shape == pred.shape
-#     mse = mean_squared_error(original_selection[:-n_columns, :], pred[:-n_columns, :]) #compare only data that is all known
-#     #?
-#     #compare mse tp safety somehow
-#     calc_risk = mse * 1.0 #Make meaningful calculation (Range between 0 and 1) probably min max
-#     if calc_risk <= risk: #Buy/Sell
-#         #Buy/ Sell amount based on calculated certainity and pred
-#         #Maybe Test with Monte-Carlo
-#         current_price = original_data[-1, close_column_index]
-#         pass
-#     else:
-#         print("Risk threshold not met")
-
-
 def decide_action_on_prediction(pair, pred, state, current_price, exclude_current_price=True, tanh_risk=0.5):
     """
     Decides on a given predicition what actions to take. This function uses a tanh function to evaluate the distance between loss and win.
@@ -38,7 +15,7 @@ def decide_action_on_prediction(pair, pred, state, current_price, exclude_curren
     :param tanh_risk: The sigmoid distance to the win margin. Values should be in range tanh(0.5) < tanh_risk < 1, where close to 1 is harder to meet but less risky.
     :return: The action to take in the format: (buy/sell/hold, amount, calculated_tanh_risk)
     """
-    action = (pair, 'hold', 0, -1) #action = (pair, {sell, buy, hold}, amount, stop-loss)
+    action = (pair, 'hold', 0, None) #action = (pair, {sell, buy, hold}, amount, stop-loss)
     current_pred = pred[0, :]
     if not exclude_current_price:
         np.insert(current_pred, 0, current_price)
@@ -70,7 +47,7 @@ def decide_action_on_prediction(pair, pred, state, current_price, exclude_curren
             if calculated_tanh_risk >= tanh_risk:
                 cur = state.extract_currency_to_buy_from_pair(pair)
                 amount = state.get_curreny_balance(cur)*0.98 #sell 98%
-                action = (pair, 'sell', amount, -1)
+                action = (pair, 'sell', amount, None)
                 break
             else:
                 j += 1

@@ -2,6 +2,7 @@ import getopt
 import sys
 import time
 
+from bot.simulation import Simulation
 from bot.tradingbot import TradingBot
 from util.config_manager import BotConfigManager
 
@@ -33,10 +34,10 @@ def main():
 
     minimum_loop_time = config.timesteps/1.0 #Find better value?
     tradingbot = TradingBot(config)
-    state = 'RUN'
+    simulation = Simulation(500, False)
     try:
         while True:
-            exec_time = tradingbot.run(state)
+            exec_time = tradingbot.run(simulation)
             print('Loop execution took:', exec_time,
                   'seconds. Waiting %f seconds. (It is safe to force shutdown now)' % max(minimum_loop_time - exec_time,
                                                                                           0))

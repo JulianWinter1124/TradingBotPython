@@ -11,7 +11,7 @@ from bot import data_modifier as dm
 
 
 class NeuralManager():
-    def __init__(self, unmodified_data_filepath, finished_data_filepath, overwrite_models, batch_size, epochs, output_size, n_in, n_out, n_features, use_scaling, layer_units=[30, 20], activation_function='LeakyReLU', loss_function='mse', optimizer='adam'):
+    def __init__(self, unmodified_data_filepath, finished_data_filepath, overwrite_models, batch_size, epochs, output_size, n_in, n_out, n_features, use_scaling, use_indicators, layer_units=[30, 20], activation_function='LeakyReLU', loss_function='mse', optimizer='adam'):
 
         self.n_completed = dict
         self.unmodified_data_filepath = unmodified_data_filepath
@@ -24,6 +24,7 @@ class NeuralManager():
         self.n_out = n_out
         self.n_features = n_features
         self.use_scaling = use_scaling
+        self.use_indicators = use_indicators
         self.layer_units = layer_units
         self.activation_function = activation_function
         self.loss_function = loss_function
@@ -72,7 +73,7 @@ class NeuralManager():
             plt.legend()
             plt.show()
 
-    def make_latest_predictions(self, scalers, look_back=0):
+    def predict_latest_date(self, scalers, look_back=0):
         """
         make predictions for all existing models, with the newest data available in unmodified_data.h5
         :param use_scaling: boolean if scaling should be used
@@ -87,12 +88,30 @@ class NeuralManager():
             dset = unmodified_data_file[pair]
             data = dset[:, :]
             dates[pair] = data[-1, 1]
-            nolabels = dm.data_to_timeseries_without_labels(data, self.n_in, scalers[pair], [], True, True)
+            nolabels = dm.data_to_timeseries_without_labels(data, self.n_in, scalers[pair], [], self.use_scaling, self.use_indicators)
             nolabels = nolabels.reshape((nolabels.shape[0], self.n_in, self.n_features))
             neur : Neural = self.neural_instances[pair]
             predictions[pair] = neur.predict(nolabels) #TODO: only okay as long as 'pairs processor = pairs collector'
             if self.use_scaling:
                 scaler : MinMaxScaler = scalers[pair]
+                predictions[pair] = dm.reverse_normalize_prediction(predictions[pair], 0, self.n_features, scaler)
+            print('predictions for', dates[pair], pair, predictions[pair])
+        return dates, predictions
+
+    def predict_all_data(self, scalers):
+        predictions = dict()
+        dates = dict()
+        unmodified_data_file = self.read_unmodified_data_file()
+        for pair in unmodified_data_file.keys():  # TODO: Change this to finished data, if processor changes behavior
+            dset = unmodified_data_file[pair]
+            data = dset[:, :]
+            dates[pair] = data[:, 1]
+            nolabels = dm.data_to_timeseries_without_labels(data, self.n_in, scalers[pair], [], self.use_scaling, self.use_indicators)
+            nolabels = nolabels.reshape((nolabels.shape[0], self.n_in, self.n_features))
+            neur: Neural = self.neural_instances[pair]
+            predictions[pair] = neur.predict(nolabels)  # TODO: only okay as long as 'pairs processor = pairs collector'
+            if self.use_scaling:
+                scaler: MinMaxScaler = scalers[pair]
                 predictions[pair] = dm.reverse_normalize_prediction(predictions[pair], 0, self.n_features, scaler)
             print('predictions for', dates[pair], pair, predictions[pair])
         return dates, predictions

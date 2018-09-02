@@ -22,47 +22,41 @@ class TradingBot():
     #execute all task within here
     def run(self, state):
         start = time.time()
-        if state is 'RUN':
-            self.state = "RUN"
-            self.data_collector.download_and_save() #collect latest data for all pairs
 
-            self.data_processor.process_and_save() #process data into train-ready data
+        self.data_collector.download_and_save() #collect latest data for all pairs
 
-            if time.time() - self.config_manager.latest_training_run > 6 * 60 * 60: #Train new all 6 hours
+        self.data_processor.process_and_save() #process data into train-ready data
 
-                self.config_manager.latest_training_run = time.time() #save when latest training run was executed
+        if time.time() - self.config_manager.latest_training_run > 6 * 60 * 60: #Train new all 6 hours
 
-                self.neural_manager.train_models(plot_history=True) #Train all models (data in train-ready file)
+            self.config_manager.latest_training_run = time.time() #save when latest training run was executed
 
-                self.data_collector.download_and_save() #update data (training took some time)
+            self.neural_manager.train_models(plot_history=True) #Train all models (data in train-ready file)
 
-                self.data_processor.process_and_save()
+            self.config_manager.overwrite_models = False #Reset this param
 
-            else:
-                print('skipping training because not enough time has passed since')
+            self.data_collector.download_and_save() #update data (training took some time)
 
-            scalers = self.data_processor.get_scaler_dict() #loads the scaler from the data processor
+            self.data_processor.process_and_save()
 
-            dates, predictions = self.neural_manager.make_latest_predictions(scalers, look_back=0) #make latest predictions for latest data column (unmodified_data)
+        else:
+            print('skipping training because not enough time has passed since')
 
-            for pair, values in predictions.items():
+        scalers = self.data_processor.get_scaler_dict() #loads the scaler from the data processor
 
-                self.prediction_history.add_prediction(pair, dates[pair], values) #add prediction to the history
+        dates, predictions = self.neural_manager.predict_latest_date(scalers, look_back=0) #make latest predictions for latest data column (unmodified_data)
 
-                self.prediction_history.plot_prediction_history(pair, self.data_collector.get_original_data(pair)) #plot all predictions from history
+        for pair, values in predictions.items():
 
-                action = decision.decide_action_on_prediction(pair, values, None, 0.8) #Decide which action to take base on prediction
+            self.prediction_history.add_prediction(pair, dates[pair], values) #add prediction to the history
 
-                print(action)
+            self.prediction_history.plot_prediction_history(pair, self.data_collector.get_original_data(pair)) #plot all predictions from history
 
-                #state.perform_action(action=action) #Perform the given action.
+            action = decision.decide_action_on_prediction(pair, values, state,  0.8) #Decide which action to take base on prediction
 
+            print(action)
 
-
-
-        if state is "PAUSE":
-            self.state = "PAUSE"
-            #there is nothing to stop right now, but if there was put it here
+            state.perform_action(action=action) #Perform the given action.
 
         return time.time()-start
 

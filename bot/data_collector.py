@@ -107,6 +107,7 @@ class DataCollector(): #TODO: drop columns
         with self._read_database_file() as file:
             dset = file[pair]
             data = dset[:, :]
+        file.close()
         return data
 
 def data_downloader(pair, last_date, end_date, time_period):

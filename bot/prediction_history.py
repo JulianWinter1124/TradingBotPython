@@ -10,14 +10,15 @@ import directory
 
 class PredictionHistory():
 
-    def __init__(self, filepath, timesteps, date_column, close_column, n_out_jumps):
+    def __init__(self, filepath, timesteps, date_column, close_column, n_out_jumps, overwrite_history):
         self.timesteps = timesteps
         self.n_out_jumps = n_out_jumps
         self.close_column = close_column
         self.date_column = date_column
         self.history : dict = dict()
         self.filepath = directory.get_absolute_path(filepath)
-        self.load_from_file()
+        if not overwrite_history:
+            self.load_from_file()
 
     def add_prediction(self, pair, prediction_date, prediction):
         if pair in  self.history:

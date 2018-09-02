@@ -9,6 +9,7 @@ from bot import API
 class Simulation:
 
     def __init__(self, dollar_balance, disable_fees=False):
+        self.order_history = dict()
         self.time_period = 300
         self.dollar_balance = dollar_balance
         self.disable_fees = disable_fees
@@ -93,9 +94,20 @@ class Simulation:
 
     def perform_action(self, action):
         pair, actionstr, amount, stop_loss = action
-        if actionstr is 'buy':
+        if not pair in self.order_history:
+            self.order_history[pair] = list()
+
+        if actionstr is 'hold':
+            print('Not trading anything', pair)
+        elif actionstr is 'buy':
             self.buy_with_amount(pair, amount)
-            #TODO continue
+            self.order_history[pair].append(action)
+        elif actionstr is 'sell':
+            if amount > 0:
+                cur = self.extract_currency_to_buy_from_pair(pair)
+                self.sell(cur, amount)
+                self.order_history[pair].append(action)
+
 
 
 #End of class
