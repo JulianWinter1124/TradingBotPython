@@ -85,9 +85,33 @@ def data_to_supervised_timeseries(data, n_in=1, n_out=1, n_out_jumps=1, drop_col
     print(concat.shape)
     return np.atleast_2d(concat)
 
-def data_to_timeseries_without_labels(data, n_in, scaler, drop_columns_indices=[], use_scaling=True, use_indicators=True):
+def data_to_single_column_timeseries_without_labels(data, n_in, scaler, drop_columns_indices=[], use_scaling=True, use_indicators=True):
+    """
+    Creates a single row of timeseries data. this can be used to predict the latest date.
+    :param data: all data, or at least the latest 30+n_in rows (in case indicators are used)
+    :param n_in: the number of steps you look back in the past
+    :param scaler: the scalers that have been used by the data_processor class
+    :param drop_columns_indices:
+    :param use_scaling:
+    :param use_indicators:
+    :return: the timeseries row without labels
+    """
     data = np.delete(data, drop_columns_indices, axis=1)
     selection_array = data[-(n_in+30):, :]
+    if use_indicators:  # adding indicators
+        selection_array = add_indicators_to_data(selection_array)
+    if use_scaling:
+        if scaler is not None:
+            selection_array = normalize_data(selection_array, scaler)
+    cols = list()
+    for i in range(n_in, 0, -1):
+        cols.append(selection_array[-i, :])
+    concat = np.hstack(cols)
+    return np.atleast_2d(concat)
+
+def data_to_timeseries_without_labels(data, n_in, scaler, drop_columns_indices=[], use_scaling=True, use_indicators=True):
+    data = np.delete(data, drop_columns_indices, axis=1)
+    selection_array = data[:, :]
     if use_indicators:  # adding indicators
         selection_array = add_indicators_to_data(selection_array)
     if use_scaling:

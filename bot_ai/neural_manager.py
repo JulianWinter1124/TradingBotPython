@@ -11,7 +11,7 @@ from bot import data_modifier as dm
 
 
 class NeuralManager():
-    def __init__(self, unmodified_data_filepath, finished_data_filepath, overwrite_models, batch_size, epochs, output_size, n_in, n_out, n_features, use_scaling, use_indicators, layer_units=[30, 20], activation_function='LeakyReLU', loss_function='mse', optimizer='adam'):
+    def __init__(self, unmodified_data_filepath, finished_data_filepath, overwrite_models, batch_size, epochs, output_size, n_in, n_out, n_features, use_scaling, use_indicators, label_index_in_original_data, layer_units=[30, 20], activation_function='LeakyReLU', loss_function='mse', optimizer='adam'):
 
         self.n_completed = dict
         self.unmodified_data_filepath = unmodified_data_filepath
@@ -25,6 +25,7 @@ class NeuralManager():
         self.n_features = n_features
         self.use_scaling = use_scaling
         self.use_indicators = use_indicators
+        self.label_index_in_original_data = label_index_in_original_data
         self.layer_units = layer_units
         self.activation_function = activation_function
         self.loss_function = loss_function
@@ -88,13 +89,13 @@ class NeuralManager():
             dset = unmodified_data_file[pair]
             data = dset[:, :]
             dates[pair] = data[-1, 1]
-            nolabels = dm.data_to_timeseries_without_labels(data, self.n_in, scalers[pair], [], self.use_scaling, self.use_indicators)
+            nolabels = dm.data_to_single_column_timeseries_without_labels(data, self.n_in, scalers[pair], [], self.use_scaling, self.use_indicators)
             nolabels = nolabels.reshape((nolabels.shape[0], self.n_in, self.n_features))
             neur : Neural = self.neural_instances[pair]
             predictions[pair] = neur.predict(nolabels) #TODO: only okay as long as 'pairs processor = pairs collector'
             if self.use_scaling:
                 scaler : MinMaxScaler = scalers[pair]
-                predictions[pair] = dm.reverse_normalize_prediction(predictions[pair], 0, self.n_features, scaler)
+                predictions[pair] = dm.reverse_normalize_prediction(predictions[pair], self.label_index_in_original_data, self.n_features, scaler)
             print('predictions for', dates[pair], pair, predictions[pair])
         return dates, predictions
 
@@ -112,7 +113,7 @@ class NeuralManager():
             predictions[pair] = neur.predict(nolabels)  # TODO: only okay as long as 'pairs processor = pairs collector'
             if self.use_scaling:
                 scaler: MinMaxScaler = scalers[pair]
-                predictions[pair] = dm.reverse_normalize_prediction(predictions[pair], 0, self.n_features, scaler)
+                predictions[pair] = dm.reverse_normalize_prediction(predictions[pair], self.label_index_in_original_data, self.n_features, scaler)
             print('predictions for', dates[pair], pair, predictions[pair])
         return dates, predictions
 

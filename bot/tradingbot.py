@@ -17,6 +17,7 @@ class TradingBot():
         self.data_processor = DataProcessor(*self.config_manager.load_processor_settings())
         self.neural_manager = NeuralManager(*self.config_manager.load_neural_manager_settings())
         self.prediction_history = PredictionHistory(*self.config_manager.load_prediction_history_settings())
+        self.training_prediction_history = PredictionHistory(*self.config_manager.load_training_prediction_history_settings())
 
 
     #execute all task within here
@@ -27,6 +28,8 @@ class TradingBot():
 
         self.data_processor.process_and_save() #process data into train-ready data
 
+        scalers = self.data_processor.get_scaler_dict() #loads the scaler from the data processor
+
         if time.time() - self.config_manager.latest_training_run > 6 * 60 * 60: #Train new all 6 hours
 
             self.config_manager.latest_training_run = time.time() #save when latest training run was executed
@@ -35,6 +38,9 @@ class TradingBot():
 
             self.config_manager.overwrite_models = False #Reset this param
 
+            dates, predictions = self.neural_manager.predict_all_data(scalers)
+            self.training_prediction_history.add_prediction()
+
             self.data_collector.download_and_save() #update data (training took some time)
 
             self.data_processor.process_and_save()
@@ -42,7 +48,6 @@ class TradingBot():
         else:
             print('skipping training because not enough time has passed since')
 
-        scalers = self.data_processor.get_scaler_dict() #loads the scaler from the data processor
 
         dates, predictions = self.neural_manager.predict_latest_date(scalers, look_back=0) #make latest predictions for latest data column (unmodified_data)
 
@@ -52,7 +57,7 @@ class TradingBot():
 
             self.prediction_history.plot_prediction_history(pair, self.data_collector.get_original_data(pair)) #plot all predictions from history
 
-            action = decision.decide_action_on_prediction(pair, values, state,  0.8) #Decide which action to take base on prediction
+            action = decision.decide_action_on_prediction(pair, values, state,  self.data_collector.get_latest_closing_price(pair), False, 0.8) #Decide which action to take base on prediction
 
             print(action)
 

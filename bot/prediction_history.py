@@ -21,7 +21,7 @@ class PredictionHistory():
             self.load_from_file()
 
     def add_prediction(self, pair, prediction_date, prediction):
-        if pair in  self.history:
+        if pair in self.history:
             if not prediction_date in self.history[pair]:
                 self.history[pair][prediction_date] = prediction
             else:

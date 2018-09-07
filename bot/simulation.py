@@ -4,6 +4,7 @@ from collections import defaultdict
 import numpy as np
 
 from bot import API
+from bot_ai import decision
 
 
 class Simulation:
@@ -22,11 +23,11 @@ class Simulation:
         if self.disable_fees:
             spending_actual = price_for_one_unit * amount_in_currency
         else:
-            spending_after_fee = price_for_one_unit * amount_in_currency
-            spending_actual = spending_after_fee / (1-self.taker_fee) #taker fee
+            spending_actual = price_for_one_unit * amount_in_currency + price_for_one_unit * amount_in_currency * self.taker_fee #taker fee
         if self.dollar_balance < spending_actual:
             spending_actual = self.dollar_balance
         self.dollar_balance -= spending_actual
+
         if not self.disable_fees:
             spending_actual -= spending_actual*self.taker_fee #taker fee from https://poloniex.com/fees/
         bought = spending_actual/price_for_one_unit
@@ -94,19 +95,21 @@ class Simulation:
 
     def perform_action(self, action):
         pair, actionstr, amount, stop_loss = action
+        string_action = decision.stringify_action(action)
         if not pair in self.order_history:
             self.order_history[pair] = list()
-
         if actionstr is 'hold':
             print('Not trading anything', pair)
         elif actionstr is 'buy':
-            self.buy_with_amount(pair, amount)
+            self.buy_amount(pair, amount)
             self.order_history[pair].append(action)
         elif actionstr is 'sell':
             if amount > 0:
                 cur = self.extract_currency_to_buy_from_pair(pair)
                 self.sell(cur, amount)
                 self.order_history[pair].append(action)
+        print("dollar balance is now:", self.dollar_balance)
+        print('account worth is now:', self.get_account_worth())
 
 
 
@@ -114,7 +117,7 @@ class Simulation:
 
 def calc_win_margin_price(price, up_down_signum, taker_fee=0.002, maker_fee=0.001):
     if up_down_signum == 1: #action:buy => taker_fee
-        margin_price = np.float64(np.float64(price) / (1-np.float64(taker_fee)))
+        margin_price = price + price*taker_fee
     else:
-        margin_price = np.float64(np.float64(price) * (1-np.float64(maker_fee)))
+        margin_price = price - price*maker_fee
     return margin_price

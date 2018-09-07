@@ -19,14 +19,12 @@ def receive_latest_pair_price(pair, time_period):
     while(True):
         try:
             url = build_url(pair, current-time_period*5, current, time_period) #5 is making sure new data is available
-            print(url)
             df = pd.read_json(url, convert_dates=False)
         except (HTTPError, URLError) as e:
             logging.error('error retrieving latest price. Trying again in %d seconds.' % (count))
             time.sleep(count)
             count += 1
             continue
-        print('current', pair, 'price is:', df['close'].values[0])
         return df['close'].tail(1).values[0]
 
 

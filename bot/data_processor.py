@@ -32,7 +32,7 @@ class DataProcessor():
     def process_and_save(self):
         """
         Processes all data in unmodified_data.h5 by scaling and appending all indicators to the data.
-        Saves everything by pairname to modified_data.h5
+        Saves everything by pairname to self.output_filepath
         """
         database = self.read_h5py_database_file()
         selection_arrays = []

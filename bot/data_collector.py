@@ -110,6 +110,13 @@ class DataCollector(): #TODO: drop columns
         file.close()
         return data
 
+    def get_latest_closing_price(self, pair):
+        with self._read_database_file() as file:
+            dset = file[pair]
+            data = dset[-1, 0]
+        file.close()
+        return data
+
 def data_downloader(pair, last_date, end_date, time_period):
     """
     The worker methods which collects crypto data for the given pair and puts it back to queue
