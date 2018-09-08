@@ -95,23 +95,40 @@ class Simulation:
     def extract_first_currency_from_pair(self, pair):
         return pair.split('_')[0]
 
-    def perform_action(self, action):
+    def perform_action(self, date, action):
         pair, actionstr, amount, stop_loss = action
-        string_action = decision.stringify_action(action)
+        #string_action = decision.stringify_action(action)
         if not pair in self.order_history:
-            self.order_history[pair] = list()
+            self.order_history[pair] = dict()
+        if not date in self.order_history[pair]:
+            self.order_history[pair][date] = action
+        else:
+            print('Action already taken.')
+            return
         if actionstr is 'hold':
             print('Not trading anything', pair)
         elif actionstr is 'buy':
             self.buy_amount(pair, amount)
-            self.order_history[pair].append(action)
         elif actionstr is 'sell':
             if amount > 0:
                 cur = self.extract_second_currency_from_pair(pair)
                 self.sell(cur, amount)
-                self.order_history[pair].append(action)
         print("dollar balance is now:", self.dollar_balance)
         print('account worth is now:', self.get_account_worth())
+
+    def print_trades(self):
+        if self.order_history is not None and len(self.order_history) > 0:
+            for pair, datedict in self.order_history.items():
+                print('actions made for %s:' % pair)
+                for date, action in datedict.items():
+                    pair, actionstr, amount, stop_loss = action
+                    print(date, actionstr, amount, 'stop-loss:', stop_loss)
+
+    def save(self):
+        pass
+
+    def restore(self):
+        pass
 
 
 

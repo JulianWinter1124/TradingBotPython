@@ -36,8 +36,8 @@ def decide_action_on_prediction(pair, pred, state, current_price, exclude_curren
         calculated_tanh_risk = calc_tanh_diff(abs(p2 - p1), abs(win_margin_price - p1))
         if sign == 1:
             if calculated_tanh_risk >= tanh_risk:
-                max_loss = current_price * 0.1
-                amount = (state.get_dollar_balance() * 0.02) / max_loss
+                max_loss = current_price * 0.05
+                amount = (state.get_dollar_balance() * 0.002) / max_loss
                 stop_loss = current_price - max_loss
                 action = (pair, 'buy', amount, stop_loss)
                 break
@@ -46,7 +46,7 @@ def decide_action_on_prediction(pair, pred, state, current_price, exclude_curren
         elif sign == -1:
             if calculated_tanh_risk >= tanh_risk:
                 cur = state.extract_first_currency_from_pair(pair)
-                amount = state.get_currency_balance(cur) * 0.98  # sell 98%
+                amount = state.get_currency_balance(cur) * 0.998  # sell 98%
                 action = (pair, 'sell', amount, None)
                 break
             else:
@@ -67,7 +67,7 @@ def calc_tanh_diff(distance, min_distance):
 def stringify_action(action):
     pair, actionstr, amount, stop_loss = action
     if actionstr == 'buy':
-        return 'buy '+ pair+' for '+str(amount)+'$ and place stop-loss at '+ str(stop_loss)+ '$'
+        return 'buy '+str(amount)+ pair + ' and place stop-loss at '+ str(stop_loss)+ '$'
     elif actionstr == 'sell':
         return 'sell '+ str(amount)+' of '+ pair
     elif actionstr == 'hold':
