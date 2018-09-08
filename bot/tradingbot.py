@@ -45,12 +45,12 @@ class TradingBot():
         else:
             print('skipping training because not enough time has passed since')
 
-        dates, predictions = self.neural_manager.predict_all_data(scalers)
-
-        self.training_prediction_history.add_multiple_predictions('USDT_BTC', dates['USDT_BTC'],
-                                                                  predictions['USDT_BTC'])
-        self.training_prediction_history.plot_prediction_history('USDT_BTC',
-                                                                 self.data_collector.get_original_data('USDT_BTC'))
+        # dates, predictions = self.neural_manager.predict_all_data(scalers)
+        #
+        # self.training_prediction_history.add_multiple_predictions('USDT_BTC', dates['USDT_BTC'],
+        #                                                           predictions['USDT_BTC'])
+        # self.training_prediction_history.plot_prediction_history('USDT_BTC',
+        #                                                          self.data_collector.get_original_data('USDT_BTC'))
 
 
         dates, predictions = self.neural_manager.predict_latest_date(scalers, look_back=0) #make latest predictions for latest data column (unmodified_data)

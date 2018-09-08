@@ -45,7 +45,7 @@ def decide_action_on_prediction(pair, pred, state, current_price, exclude_curren
                 j += 1
         elif sign == -1:
             if calculated_tanh_risk >= tanh_risk:
-                cur = state.extract_currency_to_buy_from_pair(pair)
+                cur = state.extract_first_currency_from_pair(pair)
                 amount = state.get_currency_balance(cur) * 0.98  # sell 98%
                 action = (pair, 'sell', amount, None)
                 break

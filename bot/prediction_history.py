@@ -39,6 +39,7 @@ class PredictionHistory():
             if pair in self.history:
                 if not prediction_date in self.history[pair]:
                     self.history[pair][prediction_date] = prediction
+                    print(prediction)
                 else:
                     print('prediction for', prediction_date, 'already in history. Skipping')
                     return

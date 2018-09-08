@@ -31,7 +31,7 @@ class Simulation:
         if not self.disable_fees:
             spending_actual -= spending_actual*self.taker_fee #taker fee from https://poloniex.com/fees/
         bought = spending_actual/price_for_one_unit
-        currency = self.extract_buying_currency_from_pair(pair)
+        currency = self.extract_second_currency_from_pair(pair)
         self.currency_balance[currency] += bought
         logging.info('Bought' + currency + 'for%d' %spending_actual)
         logging.info('You now have: %d' %self.currency_balance[currency])
@@ -44,7 +44,7 @@ class Simulation:
         if not self.disable_fees:
             amount_in_dollar -= amount_in_dollar*self.taker_fee #taker fee from https://poloniex.com/fees/
         bought = amount_in_dollar/price_for_one_unit
-        currency = self.extract_buying_currency_from_pair(pair)
+        currency = self.extract_second_currency_from_pair(pair)
         self.currency_balance[currency] += bought
         logging.info('Bought' + currency + 'for%d' %amount_in_dollar)
         logging.info('You now have: %d' %self.currency_balance[currency])
@@ -83,14 +83,16 @@ class Simulation:
     def get_account_worth(self):
         sum = self.dollar_balance
         for cur in self.currency_balance:
+            if cur == 'USDT':
+                continue
             price_for_one_unit = API.receive_latest_pair_price('USDT_' + cur, self.time_period)
             sum += self.currency_balance[cur] * price_for_one_unit
         return sum
 
-    def extract_buying_currency_from_pair(self, pair):
+    def extract_second_currency_from_pair(self, pair):
         return pair.split('_')[1]
 
-    def extract_currency_to_buy_from_pair(self, pair):
+    def extract_first_currency_from_pair(self, pair):
         return pair.split('_')[0]
 
     def perform_action(self, action):
@@ -105,7 +107,7 @@ class Simulation:
             self.order_history[pair].append(action)
         elif actionstr is 'sell':
             if amount > 0:
-                cur = self.extract_currency_to_buy_from_pair(pair)
+                cur = self.extract_second_currency_from_pair(pair)
                 self.sell(cur, amount)
                 self.order_history[pair].append(action)
         print("dollar balance is now:", self.dollar_balance)
