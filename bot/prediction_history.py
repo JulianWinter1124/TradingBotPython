@@ -32,6 +32,21 @@ class PredictionHistory():
             self.history[pair][prediction_date] = prediction
         self.save_to_file()
 
+    def add_multiple_predictions(self, pair, dates, predictions):
+        for i in range(len(predictions)):
+            prediction = predictions[i, :]
+            prediction_date = dates[i]
+            if pair in self.history:
+                if not prediction_date in self.history[pair]:
+                    self.history[pair][prediction_date] = prediction
+                else:
+                    print('prediction for', prediction_date, 'already in history. Skipping')
+                    return
+            else:
+                self.history[pair] = dict()
+                self.history[pair][prediction_date] = prediction
+            self.save_to_file()
+
     def plot_prediction_history(self, pair, original_data):
         prediction_data = self.history[pair]
         n = len(prediction_data.keys())

@@ -25,31 +25,6 @@ class Neural():
         self.reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, verbose=1, min_delta=1e-4,
                                                 mode='min')
 
-    def load_or_build_model_v0(self):
-        """
-        Loads the model from file or creates one if not existent
-        """
-        from keras.models import Sequential, load_model
-        from keras.layers import Dense, Activation, LSTM, Dropout, LeakyReLU, Flatten
-        if self.overwrite or not os.path.isfile(self.filepath):  # Is there no existing model?
-            self.model = Sequential()
-            self.model.add(LSTM(units=self.layer_units[0], input_shape=(self.n_in, self.n_features), return_sequences=True))
-            if self.activation_function == 'LeakyReLU':
-                self.model.add(LeakyReLU(alpha=.001))
-            else:
-                self.model.add(Activation(self.activation_function))
-            self.model.add(Dropout(0.2))
-            for i in range(1, len(self.layer_units)):
-                self.model.add(LSTM(units=self.layer_units[i], input_shape=(self.n_in, self.n_features), return_sequences=True))
-                self.model.add(Dropout(0.2))
-            self.model.add(Flatten())
-            self.model.add(Dense(self.output_size))
-            self.model.compile(loss=self.loss_function, optimizer=self.optimizer)
-            self.model.save(self.filepath, True)
-        else:
-            self.model = load_model(self.filepath)
-        self.model.summary()
-
     def load_or_build_model(self):
         """
         Loads the model from file or creates one if not existent
