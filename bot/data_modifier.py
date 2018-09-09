@@ -1,29 +1,15 @@
 import logging
 
 import numpy as np
-import talib  # windows: https://www.lfd.uci.edu/~gohlke/pythonlibs/#ta-lib
+import talib
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
-
-# def create_test_and_training_data(normalized_data, label_indices=[0], del_columns_indices=[], split_factor=0.8):
-#     normalized_data = np.delete(normalized_data, del_columns_indices, axis=1)
-#     labels = normalized_data[:, label_indices]
-#     train_test = np.delete(normalized_data, label_indices, axis=1)
-#
-#     # split and reshape for ML
-#     split_index = int(split_factor * len(train_test))
-#     train = train_test[:split_index, :]
-#     test = train_test[split_index:, :]
-#     train_label = labels[:split_index, :]
-#     test_label = labels[split_index:, :]
-#     train = train.reshape((train.shape[0], 1, train.shape[1]))
-#     test = test.reshape((test.shape[0], 1, test.shape[1]))
-#     train_label = train_label.reshape(
-#         (train_label.shape[0], 1, train_label.shape[1]))  # TODO: Change 1 to something else
-#     test_label = test_label.reshape((test_label.shape[0], 1, test_label.shape[1]))
-#     return train, train_label, test, test_label
-
 def normalize_data_MinMax(data):
+    """
+    Normalizes the given data with a minMax scaler
+    :param data: the data to scale
+    :return: scaled data, used scaler
+    """
     scaler = MinMaxScaler()
     print('scaler fit on data with shape:', data.shape)
     data = scaler.fit_transform(data)
@@ -31,6 +17,11 @@ def normalize_data_MinMax(data):
 
 
 def normalize_data_Standard(data):
+    """
+    Normalizes the given data with a Standard deviation scaler
+    :param data: the data to scale
+    :return: scaled data, used scaler
+    """
     scaler = StandardScaler()
     print('scaler fit on data with shape:', data.shape)
     data = scaler.fit_transform(data)
@@ -38,6 +29,12 @@ def normalize_data_Standard(data):
 
 
 def normalize_data(data, scaler):
+    """
+    Scale the data with the given scaler
+    :param data: the data in the right shape
+    :param scaler: the scaler used on same shaped data
+    :return: scaled data
+    """
     if (scaler != None):
         return scaler.transform(data)
     else:
@@ -45,21 +42,29 @@ def normalize_data(data, scaler):
 
 
 def reverse_normalize_prediction(prediction, label_index_in_original_data, n_features, scaler):
+    """
+    Reverses scaling of labels by bringing labels in the right shape one by one and scales them. at last put all scaled labels together
+    :param prediction: the prediction data
+    :param label_index_in_original_data: the label index in the original data
+    :param n_features: the number of columns in the original data
+    :param scaler: the scaler used to transform the data
+    :return: the unscaled predictions in the same shape as prediction
+    """
     cols = list()
     print(prediction.shape, n_features)
     for i in range(prediction.shape[1]):
         pred_column = prediction[:, i]
-        dummy_data = np.zeros(shape=(prediction.shape[0], n_features))
+        dummy_data = np.zeros(shape=(prediction.shape[0], n_features)) #Make array with same shape as original data
         dummy_data[:, label_index_in_original_data] = pred_column
-        scaled_dummy_data = scaler.inverse_transform(dummy_data)
-        cols.append(np.atleast_2d(scaled_dummy_data[:, label_index_in_original_data]))
-    concat = np.concatenate(cols, axis=1)
+        scaled_dummy_data = scaler.inverse_transform(dummy_data) #reverse scale of dummy array containing the one column of predictions(=labels in original data)
+        cols.append(np.atleast_2d(scaled_dummy_data[:, label_index_in_original_data])) # append inverse scaled rpedictions to result list
+    concat = np.concatenate(cols, axis=1) #concatenate list
     return concat
 
 
 def data_to_supervised_timeseries(data, n_in=1, n_out=1, n_out_jumps=1, drop_columns_indices=[], label_columns_indices=[0]):
     """
-    Converts the given data to a timeseries. Inspired from https://machinelearningmastery.com/multivariate-time-series-forecasting-lstms-keras/
+    Converts the given data to a supervised timeseries. Inspired from https://machinelearningmastery.com/multivariate-time-series-forecasting-lstms-keras/
     :param data: the data to convert in a numpy array
     :param n_in: the number of steps you look back in the past (excluding present)
     :param n_out: the number of steps you look in the future (excluding present)
@@ -126,11 +131,11 @@ def data_to_timeseries_without_labels(data, n_in, scaler, drop_columns_indices=[
 def add_indicators_to_data(selection_array):
     """
     Adds all indicators to the passed data array.
-    This DELETES the first lines of data because NaN rows are dropped (30 for now, but specified by max(timeperiod)
-    :param selection_array:
-    :return:
+    This deletes the first lines of data because NaN rows are dropped (30 for now, specified by the maximum timeperiod in indicators
+    :param selection_array: The selected array where indiccators are added
+    :return: the original array with the added indicators at the right
     """
-    selection_array = np.array(selection_array, dtype='f8')
+    selection_array = np.array(selection_array, dtype='f8') #Ta-Lib does not like other floats?
     selection_array = add_SMA_indicator_to_data(selection_array, close_index=0, timeperiod=30)  # 1 column
     selection_array = add_BBANDS_indicator_to_data(selection_array, close_index=0)  # 3 columns
     selection_array = add_RSI_indicator_to_data(selection_array, close_index=0)  # 1 column
@@ -161,11 +166,11 @@ def add_OBV_indicator_to_data(data, close_index=0, volume_index=6):  # Volume in
     return np.concatenate((data, out), axis=1)
 
 
-def drop_NaN_rows(data):
+def drop_NaN_rows(data): #drops als rows that contain NaN floats
     return data[~np.isnan(data).any(axis=1)]
 
 
-def create_binary_labels(closing_price_column):
+def create_binary_labels(closing_price_column): #This is not used anymore
     """Calculate labels (-1 for down or 1 for up)
     :param closing_price_column: The data the labels are generated from
     :return: the labels in a list with length
@@ -175,7 +180,7 @@ def create_binary_labels(closing_price_column):
     return label_list
 
 
-def create_ranged_labels(closing_price_column):
+def create_ranged_labels(closing_price_column): #Not used either
     """
     :param closing_price_column: The data the labels are generated from
     :return: difference between prices unified to (-1, 1) in R

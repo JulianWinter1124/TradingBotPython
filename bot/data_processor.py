@@ -38,17 +38,19 @@ class DataProcessor():
         selection_arrays = []
         database_keys = database.keys()
         n = len(database_keys)
-        for dset_name in database_keys:
+        for dset_name in database_keys: #For all available pairs in unmodified data:
             dset = database[dset_name]
-            selection_array = dset[self.n_completed[dset_name]:, :]
-            if len(selection_array) <= self.get_minimum_data_amount_for_timeseries():  # max(timeperiod) in out
+            selection_array = dset[self.n_completed[dset_name]:, :] #only select data that is not transformed into a timeseries yet
+            if len(selection_array) <= self.get_minimum_data_amount_for_timeseries():  # if not enough data is available, skip this pair
                 print('not enough data for timeseries calculation', dset_name)
                 selection_array = None
             selection_arrays.append(selection_array)
-        param_list = list(zip(database_keys, selection_arrays, self._scaler.values(), repeat(self.use_indicators), repeat(self.use_scaling), repeat(self.drop_data_columns_indices), repeat(self.label_column_indices), repeat(self.n_in), repeat(self.n_out), repeat(self.n_out_jumps)))
-        param_list = [x for x in param_list if x[1] is not None]
+        param_list = list(zip(database_keys, selection_arrays, self._scaler.values(), repeat(self.use_indicators), repeat(self.use_scaling),
+                              repeat(self.drop_data_columns_indices), repeat(self.label_column_indices), repeat(self.n_in),
+                              repeat(self.n_out), repeat(self.n_out_jumps))) #zip all params into a list for use in multiprocessing Pool
+        param_list = [x for x in param_list if x[1] is not None] #filter out any entries that contain no selection array
         with mp.Pool(processes=4) as pool:
-            res = pool.starmap_async(func=produce_modified_data, iterable=param_list)
+            res = pool.starmap_async(func=produce_modified_data, iterable=param_list) #Call produce_modified_data with the params
             pool.close()
             pool.join()
 
@@ -111,13 +113,18 @@ class DataProcessor():
             else:
                 print('Pair: ' + pair + 'was not found in' + str(file) + '...creating new dataset')
                 dset = file.create_dataset(pair, shape=(0, 1),
-                                           maxshape=(None, None), dtype='float64')  # chunk param is really important
+                                           maxshape=(None, None), dtype='float64')
                 dset.flush()
         database.close()
         file.flush()
         file.close()
 
     def _load_scaler(self, dset_name):
+        """
+        loads the scaler for the pair/dset_name from /datascaler folder
+        :param dset_name:
+        :return:
+        """
         path = self.scaler_base_filepath + dset_name + '_scaler.save'
         print(path)
         if directory.file_exists(path):
@@ -126,16 +133,29 @@ class DataProcessor():
             return None
 
     def _save_scaler(self, dset_name):
+        """
+        saves scaler for the dataset in the specific file in /datascaler folder
+        :param dset_name:
+        :return:
+        """
         path = self.scaler_base_filepath + dset_name + '_scaler.save'
         print('Saving scaler to:', path)
         directory.ensure_directory(path)
-        joblib.dump(self._scaler[dset_name], path)
+        joblib.dump(self._scaler[dset_name], path) #this is from sklearn and different(?) to pickle for maximum compatibility
 
-    def get_scaler(self, dset_name) -> MinMaxScaler:
+    def get_scaler(self, dset_name):
+        """
+        return scaler for the pair/dset if there is one
+        :param dset_name:
+        :return:
+        """
         if not self._scaler is None:
             return self._scaler[dset_name]
 
     def get_scaler_dict(self) -> dict:
+        """
+        :return: all scalers in a dict with pairs/dset_names as key
+        """
         return self._scaler
 
     def update_completed_and_scaler(self):
@@ -153,24 +173,33 @@ class DataProcessor():
         database.close()
 
 
+#this is not a class method as this needs to be pickleable by multiprocessing.
+# 'self' is an instance of the class and thus bad to use in methods that are called by processes
 def produce_modified_data(dset_name, selection_array, scaler, use_indicators, use_scaling, drop_data_columns_indices,
                                                        label_columns_indices, n_in, n_out, n_out_jumps):
     """
-    Reads the databse continuesly and makes the data ready for training. All data that is ready is put into queue
-    :param dset_name: the specific dataset the method should listen to
-    :param queue: the queue in which finished data will be put
-    :return: None
+    scales the data and adds the indicators to it. transforms the data into a supervised timeseries at last
+    :param dset_name: the pair or dset_name (it's the same)
+    :param selection_array: the data that is transformed
+    :param scaler: if there is a scaler already use this, if None make own
+    :param use_indicators: #paramsn defined in config_manager.py
+    :param use_scaling:
+    :param drop_data_columns_indices:
+    :param label_columns_indices:
+    :param n_in:
+    :param n_out:
+    :param n_out_jumps:
+    :return: the supervised timeseries data
     """
-    print(dset_name, selection_array.shape)
     if use_indicators:
         selection_array = dm.add_indicators_to_data(selection_array)
     if use_scaling:
         if scaler is None:
             #selection_array, scaler = dm.normalize_data_MinMax(selection_array)
-            selection_array, scaler = dm.normalize_data_Standard(selection_array)
+            selection_array, scaler = dm.normalize_data_Standard(selection_array) #use standard scaler for now
         else:
             selection_array = dm.normalize_data(selection_array, scaler)
-    timeseries_data  = dm.data_to_supervised_timeseries(selection_array, n_in=n_in, n_out=n_out, n_out_jumps=n_out_jumps, drop_columns_indices=drop_data_columns_indices,
+    timeseries_data  = dm.data_to_supervised_timeseries(selection_array, n_in=n_in, n_out=n_out, n_out_jumps=n_out_jumps, drop_columns_indices=drop_data_columns_indices, #transform to timeseries
                                                        label_columns_indices=label_columns_indices)
     return (dset_name, scaler, timeseries_data)
 

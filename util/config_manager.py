@@ -39,27 +39,28 @@ class BotConfigManager():
         self.pairs = ['USDT_BTC', 'USDT_ETH']
         self.start_dates = [1483225200, 1483225200]
         self.end_dates = [9999999999, 9999999999]
-        self.timesteps = 300
-        self.drop_data_column_indices = []
-        self.data_date_column_indice = 1
-        self.data_label_column_indices = [0]
-        self.n_in = 20
-        self.n_out = 4
-        self.n_out_jumps = 1
-        self.redownload_data = False
-        self.use_scaling = True
-        self.overwrite_scalers = False
-        self.use_indicators = True
-        self.overwrite_models = False
-        self.overwrite_history = self.overwrite_models
-        self.batch_size = 100
-        self.epochs = 50
-        self.n_features = 6 + 8 * self.use_indicators - len(self.drop_data_column_indices)
-        self.layer_sizes_list = [100, 20]
-        self.activation_function = 'LeakyReLU'
-        self.loss_function = 'mse'
-        self.optimizer = 'adam'
-        self.latest_training_run = 0
+        self.timesteps = 300 # interval for new close data. this is important for poloniex api. 300secs=5minutes
+        self.drop_data_column_indices = [] # drop useless data columns. All data might be useful so this is empty
+        self.data_date_column_indice = 1 # specifies where the data column is
+        self.data_label_column_indices = [0] #where are the labels? only use one right now, more is experimental and not tested
+        self.n_in = 20 # number of input data before the current data
+        self.n_out = 4 # number of additional predicted labels
+        self.n_out_jumps = 1 # every n_out_jumps data point is beeing predicted. e.g 2 = every second future datapoint is beeing predicted
+        self.redownload_data = False #wether all data should be redownloaded. If you alter start, end or timesteps this has to be set to true
+        self.use_scaling = True #Use scaling in data_processor and anywhere else?
+        self.overwrite_scalers = False #Use old scalers or overwrite at startup? this should be True. If you want to reset scalers just delete files in /datascaler
+        self.use_indicators = True #should indicators be added?
+        self.overwrite_models = False #overwrite models at startup. default=False
+        self.overwrite_history = self.overwrite_models #overwrites prediction history at startup. This has no big impact on bot functions
+        self.batch_size = 100 #The number of datarows in one batch
+        self.epochs = 50 #The maximum number of epochs (early stopping might trigger)
+        self.n_features = 6 + 8 * self.use_indicators - len(self.drop_data_column_indices) # There are 6 columns normally, add 8 if indicators are used and substract all dropped columns
+        self.layer_sizes_list = [100, 20] #The number of neurons in each layer. The List should be at minimum 1 and can be as large as wanted
+        self.activation_function = 'LeakyReLU' #The used activation function in all besides the last layer (last layer is softmax default)
+        self.loss_function = 'mse' #The loss function to determine loss. there might be better stuff than mse
+        self.optimizer = 'adam' #All praise adam our favourite optimizer
+        self.latest_training_run = 0 #this is a timestamp when the latest training run was executed
+        self.train_every_n_seconds = 6 * 60 * 60 # retrain every n-seconds
 
     def save_config(self):
         directory.ensure_directory(self.filepath)

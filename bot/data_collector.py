@@ -16,24 +16,25 @@ class DataCollector(): #TODO: drop columns
         directory.ensure_directory(self.filepath)
         self.BASE_URL = 'https://poloniex.com/public?command=returnChartData'
         self.time_period = time_period
-        self.currency_pairs = currency_pairs
-        self.start_dates = start_dates
+        self.currency_pairs = currency_pairs #All crypto pairs you want to download and predict
+        self.start_dates = start_dates #Starting date list for pairs
         self.last_dates = start_dates  # The last dates that had data available
         self.end_dates = end_dates
         self.overwrite = overwrite #redownload data every time or save progress
-        self.create_h5py_file_and_datasets()
-
-        #Call file creation related methods
+        self.create_h5py_file_and_datasets() # make sure h5 file exists and all datasets are created if needed
 
     def download_and_save(self):
+        """
+        Main method to call. downloads and saves all data with use of multiple processes
+        """
         self._update_latest_dates()
-        param_list = list(zip(self.currency_pairs, self.last_dates, self.end_dates, repeat(self.time_period)))
+        param_list = list(zip(self.currency_pairs, self.last_dates, self.end_dates, repeat(self.time_period))) #make a list with all neede parameters
         with mp.Pool(processes=4) as pool:
             res = pool.starmap_async(func=data_downloader, iterable=param_list)
-            pool.close()
-            pool.join()
-        results = res.get(timeout=None)
-        with self._read_database_file() as datafile:
+            pool.close() #close pool to not allow new tasks (not really needed)
+            pool.join() #wait for pool
+        results = res.get(timeout=None) #get all results from the pool
+        with self._read_database_file() as datafile: #save all data pair wise in the file
             for result in results:
                 if result is None: continue
                 pair, data = result
@@ -49,7 +50,7 @@ class DataCollector(): #TODO: drop columns
 
     def _update_latest_dates(self):
         """
-        Reads the pair_data_unmodified.h5 file and checks the latest saved dates
+        Reads the pair_data_unmodified.h5 file, checks the latest saved dates and updates last_dates accordingly
         """
         with self._read_database_file() as file:
             for i in range(len(self.currency_pairs)):
@@ -62,6 +63,9 @@ class DataCollector(): #TODO: drop columns
         return h5py.File(self.filepath, libver='latest')
 
     def create_h5py_file_and_datasets(self):
+        """
+        Creates or reads file (overwrites if desired) and makes sure all datasets exist.
+        """
         directory.ensure_directory(self.filepath)
         if self.overwrite:
             database = h5py.File(self.filepath, 'w', libver='latest', swmr=False)
@@ -75,15 +79,15 @@ class DataCollector(): #TODO: drop columns
                 print('Pair: ' + pair + 'was not found in' + str(database) + '...creating new dataset')
                 dset = database.create_dataset(pair, (0, 8), maxshape=(None, 8), dtype='float64')
                 dset.flush()
-        database.swmr_mode = True
+        database.swmr_mode = True #switch on swmr mode to allow multiple readers at once
         database.close()
 
-    def build_url(self, pair, start_date, end_date, time_period) -> str:
-        return self.BASE_URL + '&currencyPair=' + pair + '&start=' + str(start_date) + '&end=' + str(
-            end_date) + '&period=' + str(
-            time_period)
+    #utility methods for other classes ༼ つ ◕_◕ ༽つ
 
     def get_latest_dates(self):
+        """
+        :return: the last available date in a dict with pairs/dset_names as key
+        """
         dates = dict()
         with self._read_database_file() as file:
             for i in range(len(self.currency_pairs)):
@@ -95,6 +99,11 @@ class DataCollector(): #TODO: drop columns
         return dates
 
     def get_latest_date_for_pair(self, pair):
+        """
+        only get one last date for the specified pair
+        :param pair: the ctypto pair/dset name
+        :return: last date
+        """
         date = 0
         with self._read_database_file() as file:
             dset = file[pair]
@@ -104,6 +113,11 @@ class DataCollector(): #TODO: drop columns
         return date
 
     def get_original_data(self, pair):
+        """
+        get all available data for the specified pair
+        :param pair:
+        :return: data as np.array
+        """
         with self._read_database_file() as file:
             dset = file[pair]
             data = dset[:, :]
@@ -111,6 +125,11 @@ class DataCollector(): #TODO: drop columns
         return data
 
     def get_latest_closing_price(self, pair):
+        """
+        get only the latest closing price for the specified pair
+        :param pair:
+        :return:
+        """
         with self._read_database_file() as file:
             dset = file[pair]
             data = dset[-1, 0]

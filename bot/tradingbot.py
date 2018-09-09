@@ -30,7 +30,7 @@ class TradingBot():
 
         scalers = self.data_processor.get_scaler_dict() #loads the scaler from the data processor
 
-        if time.time() - self.config_manager.latest_training_run > 6 * 60 * 60: #Train new all 6 hours
+        if time.time() - self.config_manager.latest_training_run > self.config_manager.train_every_n_seconds: #Train new all 6 hours
 
             self.config_manager.latest_training_run = time.time() #save when latest training run was executed
 

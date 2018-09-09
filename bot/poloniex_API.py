@@ -4,9 +4,10 @@ import json
 import time
 import hmac,hashlib
 
-#THIS IS NOT MY OWN CODE. THIS IS AN SLIGHTLY ALTERED VERSION FROM: http://pastebin.com/fbkheaRb
+#THIS IS NOT MY OWN CODE. THIS IS AN SLIGHTLY ALTERED VERSION FROM: http://pastebin.com/fbkheaRb (made executable for python 3)
 #THE LINK WAS FOUND at https://poloniex.com/support/api/
-#AUTHOR IS oipminer
+#AUTHOR IS "oipminer" ACCORDING TO POLONIEX
+#poloniex_API.py is able to (untested) place orders, get trading infos, chart data etc. after the necessary keys have been put in.
 
 def createTimeStamp(datestr, format="%Y-%m-%d %H:%M:%S"):
     return time.mktime(time.strptime(datestr, format))

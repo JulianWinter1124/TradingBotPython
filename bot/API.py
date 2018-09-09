@@ -6,12 +6,17 @@ import pandas as pd
 
 BASE_URL = 'https://poloniex.com/public?command=returnChartData'
 
+#This class only uses the poloniex public API, so no secret or api key is required.
+#For completion reasons I included the poloniex_API.py (WHICH IS NOT MINE)
+
+
 def receive_latest_pair_price(pair, time_period):
     """
     receives only the latest close price for the specified currency pair
-    :param pair: if this is wring pandas sazs stuff about must pass index
+    Note: a Pandas error might be due to an unknown pair. i don't want to catch this as this is unintended behavior
+    :param pair: the crpyto pair to receive data from.
     :param time_period: valid: 300, 900, 1800, 7200, 14400, and 86400
-    :return:
+    :return: the latest available price for the given pair
     """
     current = int(time.time())
 
@@ -32,7 +37,7 @@ def receive_pair_data(pair, start_date, end_date, time_period):
     """
     Receives all pair data within the specified dates.
     Note: a Pandas error might be due to an unknown pair
-    :param pair: the burrency pair. e.g. USDT_BTC
+    :param pair: the currency pair. e.g. USDT_BTC
     :param start_date: start date in unix format
     :param end_date: end date in unix format (enter something high)
     :param time_period:time period in which data comes in. valid=300, 900, 1800, 7200, 14400, and 86400
@@ -52,17 +57,18 @@ def receive_pair_data(pair, start_date, end_date, time_period):
 
 def build_url(pair, start_date, end_date, time_period) -> str:
     """
-    Builds the return_chart_data url
-    :param pair:
-    :param start_date:
-    :param end_date:
-    :param time_period:
+    Builds the return_chart_data url for poloniex
+    see: https://poloniex.com/support/api/
+    :param pair: the currency pair. e.g. USDT_BTC
+    :param start_date: start date in unix format
+    :param end_date: end date in unix format (enter something high)
+    :param time_period:time period in which data comes in. valid=300, 900, 1800, 7200, 14400, and 86400
     :return:
     """
     return BASE_URL + '&currencyPair=' + str(pair) + '&start=' + str(start_date) + '&end=' + str(
         end_date) + '&period=' + str(time_period)
 
-def receive_currency_trading_info(currency):
+def receive_currency_trading_info(currency): #Not really used right now
     """
     Receives trading info about a specific currency. Example format:
     delisted                   0
@@ -85,7 +91,7 @@ def receive_currency_trading_info(currency):
             continue
         return currencies[currency]
 
-def receive_currency_list():
+def receive_currency_list(): #not used right now
     """
     Receeives a list of all currencies on poloniex
     see: https://poloniex.com/support/api/
@@ -100,9 +106,6 @@ def receive_currency_list():
             continue
         return currencies.columns.values
 
-
-def buy_currency(currency_pair, amount, access_token):
-    pass
 
 
 
