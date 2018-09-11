@@ -38,6 +38,7 @@ class DataCollector(): #TODO: drop columns
             for result in results:
                 if result is None: continue
                 pair, data = result
+                print(data)
                 dset = datafile[pair]
                 dset.resize((dset.shape[0] + data.shape[0]), axis=0)
                 dset[-data.shape[0]:] = data
@@ -58,6 +59,8 @@ class DataCollector(): #TODO: drop columns
                 if not len(dset) == 0:
                     date = dset[-1, 1]#TODO: might replace second index with variable
                     self.last_dates[i] = date + 1
+                else:
+                    self.last_dates[i] = self.start_dates[i]
 
     def _read_database_file(self):
         return h5py.File(self.filepath, libver='latest')

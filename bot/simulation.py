@@ -1,4 +1,6 @@
 import logging
+import pandas as pd
+from matplotlib import pyplot as plt
 from collections import defaultdict
 
 from bot import API
@@ -8,6 +10,7 @@ class Simulation:
 
     def __init__(self, dollar_balance, disable_fees=False):
         self.order_history = dict()
+        self.account_standing_histoy = dict()
         self.time_period = 300
         self.dollar_balance = dollar_balance
         self.disable_fees = disable_fees
@@ -126,11 +129,14 @@ class Simulation:
         pair, actionstr, amount, stop_loss = action
         if not pair in self.order_history:
             self.order_history[pair] = dict() # Make a dict if there are no orders for that pair yet
+            self.account_standing_histoy[pair] = dict()
         if not date in self.order_history[pair]:
             self.order_history[pair][date] = action # add the action with date as key to the pair dictionary
+            self.account_standing_histoy[pair][date] = pd.DataFrame(columns=['dollars', 'account worth'])
         else:
             print('Action already taken.')
             return
+
         if actionstr is 'hold':
             print('Not trading anything', pair)
         elif actionstr is 'buy':
@@ -140,7 +146,10 @@ class Simulation:
                 cur = self.extract_second_currency_from_pair(pair)
                 self.sell(cur, amount)
         print("dollar balance is now:", self.dollar_balance)
-        print('account worth is now:', self.get_account_worth())
+        worth = self.get_account_worth()
+        print('account worth is now:', worth)
+        self.account_standing_histoy[pair][date].append([[self.dollar_balance, worth]])
+        print(self.account_standing_histoy[pair][date])
 
     def print_trades(self):
         """
@@ -154,6 +163,13 @@ class Simulation:
                 for date, action in datedict.items():
                     pair, actionstr, amount, stop_loss = action
                     print(date, actionstr, amount, 'stop-loss:', stop_loss)
+
+    def plot_account_history(self):
+        for pair in self.account_standing_histoy.keys():
+            for date in self.account_standing_histoy[pair].keys():
+                plt.plot(x=date, y=self.account_standing_histoy[pair][date]['dollars'], color='red')
+                plt.plot(x=date, y=self.account_standing_histoy[pair][date]['account worth'], color='blue')
+            plt.show()
 
     def save(self):
         pass

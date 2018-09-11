@@ -21,7 +21,7 @@ class TradingBot():
 
 
     #execute all task within here
-    def run(self, state):
+    def run(self, state, state2):
         start = time.time()
 
         self.data_collector.download_and_save() #collect latest data for all pairs
@@ -61,11 +61,20 @@ class TradingBot():
 
             self.prediction_history.plot_prediction_history(pair, self.data_collector.get_original_data(pair)) #plot all predictions from history
 
-            action = decision.decide_action_on_prediction(pair, values, state,  self.data_collector.get_latest_closing_price(pair), False, 0.8) #Decide which action to take base on prediction
+            closing_price =  self.data_collector.get_latest_closing_price(pair)
+
+            action = decision.decide_action_on_prediction(pair, values, state, closing_price, False, 0.8) #Decide which action to take base on prediction
+
+            action_random = decision.make_random_action(pair, state2, closing_price)
 
             print(decision.stringify_action(action))
 
             state.perform_action(dates[pair], action=action) #Perform the given action.
+
+            state2.perform_action(dates[pair], action=action)
+
+            state.plot_account_history()
+            state2.plot_account_history()
 
         state.print_trades()
 
