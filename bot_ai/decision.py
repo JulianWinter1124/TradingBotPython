@@ -34,7 +34,7 @@ def decide_action_on_prediction(pair, pred, state, current_price, exclude_curren
             #print('better option in the future')
             break
         last_sign = sign
-        win_margin_price = sim.calc_win_margin_price(p1, sign) #calculated the minimum needed price to make profit
+        win_margin_price = state.calc_win_margin_price(p1, sign) #calculated the minimum needed price to make profit
         calculated_tanh_risk = calc_tanh_diff(abs(p2 - p1), abs(win_margin_price - p1)) #Check if distance is big enough with tangens function
         if sign == 1: #up trend
             if calculated_tanh_risk >= tanh_risk: #this means buy

@@ -32,11 +32,13 @@ class TradingBot():
 
         if time.time() - self.config_manager.latest_training_run > self.config_manager.train_every_n_seconds: #Train new all 6 hours
 
-            self.config_manager.latest_training_run = time.time() #save when latest training run was executed
-
             self.neural_manager.train_models(plot_history=True) #Train all models (data in train-ready file)
 
+            self.config_manager.latest_training_run = time.time()  # save when latest training run was executed
+
             self.config_manager.overwrite_models = False #Reset this param
+
+            self.config_manager.overwrite_scalers = False #this one too
 
             self.data_collector.download_and_save() #update data (training took some time)
 

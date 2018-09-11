@@ -1,5 +1,6 @@
 import directory
 import pickle
+import bot.data_modifier as dm
 
 class BotConfigManager():
 
@@ -12,8 +13,8 @@ class BotConfigManager():
         return self.unmodified_data_filepath, self.pairs, self.start_dates, self.end_dates, self.timesteps, self.redownload_data
 
     def load_processor_settings(self): #TODO: placeholder implementation
-        #database_filepath, output_filepath, use_indicators=True, use_scaling=True, drop_data_columns_indices: list = [], label_column_indices=[0], n_in=30, n_out=2, n_out_jumps=1, overwrite_scaler=False)
-        return self.unmodified_data_filepath, self.finished_data_filepath, self.use_indicators, self.use_scaling, self.drop_data_column_indices, self.data_label_column_indices, self.n_in, self.n_out, self.n_out_jumps, self.overwrite_scalers
+        #database_filepath, output_filepath, transform_label_function use_indicators=True, use_scaling=True, drop_data_columns_indices: list = [], label_column_indices=[0], n_in=30, n_out=2, n_out_jumps=1, overwrite_scaler=False)
+        return self.unmodified_data_filepath, self.finished_data_filepath, self.transform_label_function, self.use_indicators, self.use_scaling, self.drop_data_column_indices, self.data_label_column_indices, self.n_in, self.n_out, self.n_out_jumps, self.overwrite_scalers
 
     def load_neural_manager_settings(self): #TODO: placeholder implementation
         #return finished_data_filepath, overwrite_models, batch_size, epochs, output_size, n_in, n_out, n_features, use_scaling, use_indicators, label_index_in_original_data, layer_units=[30, 20], activation_function='LeakyReLU', loss_function='LeakyReLU', optimizer='adam'
@@ -36,9 +37,9 @@ class BotConfigManager():
         self.unmodified_data_filepath = 'data/unmodified_data.h5'
         self.finished_data_filepath = 'data/finished_data.hdf5'
         self.prediction_history_filepath = 'data/prediction_history.pickle'
-        self.pairs = ['USDT_BTC', 'USDT_ETH']
-        self.start_dates = [1483225200, 1483225200]
-        self.end_dates = [9999999999, 9999999999]
+        self.pairs = ['USDT_BTC'] #['USDT_BTC', 'USDT_ETH']
+        self.start_dates = [1483225200] #[1483225200, 1483225200]
+        self.end_dates = [9999999999] #[9999999999, 9999999999]
         self.timesteps = 300 # interval for new close data. this is important for poloniex api. 300secs=5minutes
         self.drop_data_column_indices = [] # drop useless data columns. All data might be useful so this is empty
         self.data_date_column_indice = 1 # specifies where the data column is
@@ -46,19 +47,20 @@ class BotConfigManager():
         self.n_in = 20 # number of input data before the current data
         self.n_out = 4 # number of additional predicted labels
         self.n_out_jumps = 1 # every n_out_jumps data point is beeing predicted. e.g 2 = every second future datapoint is beeing predicted
-        self.redownload_data = False #wether all data should be redownloaded. If you alter start, end or timesteps this has to be set to true
+        self.redownload_data = True #wether all data should be redownloaded. If you alter start, end or timesteps this has to be set to true
+        self.transform_label_function = None
         self.use_scaling = True #Use scaling in data_processor and anywhere else?
-        self.overwrite_scalers = False #Use old scalers or overwrite at startup? this should be True. If you want to reset scalers just delete files in /datascaler
+        self.overwrite_scalers = True #Use old scalers or overwrite at startup? this should be True. If you want to reset scalers just delete files in /datascaler
         self.use_indicators = True #should indicators be added?
-        self.overwrite_models = False #overwrite models at startup. default=False
+        self.overwrite_models = True #overwrite models at each reconfiguartion. default=True
         self.overwrite_history = self.overwrite_models #overwrites prediction history at startup. This has no big impact on bot functions
         self.batch_size = 100 #The number of datarows in one batch
         self.epochs = 50 #The maximum number of epochs (early stopping might trigger)
         self.n_features = 6 + 8 * self.use_indicators - len(self.drop_data_column_indices) # There are 6 columns normally, add 8 if indicators are used and substract all dropped columns
-        self.layer_sizes_list = [100, 20] #The number of neurons in each layer. The List should be at minimum 1 and can be as large as wanted
+        self.layer_sizes_list = [50, 20] #The number of neurons in each layer. The List should be at minimum 1 and can be as large as wanted
         self.activation_function = 'LeakyReLU' #The used activation function in all besides the last layer (last layer is softmax default)
         self.loss_function = 'mse' #The loss function to determine loss. there might be better stuff than mse
-        self.optimizer = 'adam' #All praise adam our favourite optimizer
+        self.optimizer = 'adam' #praise adam our favourite optimizer
         self.latest_training_run = 0 #this is a timestamp when the latest training run was executed
         self.train_every_n_seconds = 6 * 60 * 60 # retrain every n-seconds
 

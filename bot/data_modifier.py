@@ -61,8 +61,11 @@ def reverse_normalize_prediction(prediction, label_index_in_original_data, n_fea
     concat = np.concatenate(cols, axis=1) #concatenate list
     return concat
 
+def data_to_changed_label_data(data, label_column, transform_function):
+    return transform_function(data, label_column)
 
-def data_to_supervised_timeseries(data, n_in=1, n_out=1, n_out_jumps=1, drop_columns_indices=[], label_columns_indices=[0]):
+
+def data_to_supervised_timeseries(data, label_transformation_function, n_in=1, n_out=1, n_out_jumps=1, drop_columns_indices=[], label_columns_indices=[0]):
     """
     Converts the given data to a supervised timeseries. Inspired from https://machinelearningmastery.com/multivariate-time-series-forecasting-lstms-keras/
     :param data: the data to convert in a numpy array
@@ -74,19 +77,28 @@ def data_to_supervised_timeseries(data, n_in=1, n_out=1, n_out_jumps=1, drop_col
     :return: the finished timeseries numpy array
     """
     data = np.delete(data, drop_columns_indices, axis=1)
+    number_wrong_rows = n_out*n_out_jumps
+    if label_transformation_function is not None:
+        transformed_data, n_w_r = data_to_changed_label_data(data, label_columns_indices, label_transformation_function)
+        number_wrong_rows += n_w_r
     cols = list()
     for i in range(n_in, -n_out - 1, -1):
         if i <= 0:
-            column = np.roll(data, i*n_out_jumps, axis=0)
-            column = column[:, label_columns_indices]  # The future points may only contain labels
+            if label_transformation_function is not None:
+                column = np.roll(transformed_data, i * n_out_jumps, axis=0)
+                column = column[:, label_columns_indices]  # The future points may only contain labels
+            else:
+                column = np.roll(data, i*n_out_jumps, axis=0)
+                column = column[:, label_columns_indices]  # The future points may only contain labels
         else:
             column = np.roll(data, i, axis=0)
         cols.append(column)
     concat = np.concatenate(cols, axis=1)
-    if n_out == 0:
+
+    if number_wrong_rows == 0:
         concat = concat[n_in:]# NaN is always dropped
     else:
-        concat = concat[n_in:-n_out*n_out_jumps]
+        concat = concat[n_in:-number_wrong_rows]
     print(concat.shape)
     return np.atleast_2d(concat)
 
@@ -170,23 +182,31 @@ def drop_NaN_rows(data): #drops als rows that contain NaN floats
     return data[~np.isnan(data).any(axis=1)]
 
 
-def create_binary_labels(closing_price_column): #This is not used anymore
+def create_binary_labels(data, label_index): #This is not used anymore
     """Calculate labels (-1 for down or 1 for up)
     :param closing_price_column: The data the labels are generated from
     :return: the labels in a list with length
     """
+    closing_price_column = data[:, label_index]
     label_list = [np.sign(closing_price_column[i] - closing_price_column[i - 1]) for i in
                   range(1, len(closing_price_column))]
     return label_list
 
 
-def create_ranged_labels(closing_price_column): #Not used either
+def create_ranged_labels(data, label_index): #Not used either
     """
     :param closing_price_column: The data the labels are generated from
     :return: difference between prices unified to (-1, 1) in R
     """
+    closing_price_column = data[:, label_index]
     high = np.max(closing_price_column)
     low = np.min(closing_price_column)  # Bei groesser werdenden Daten evtl. aendern
     label_list = [(closing_price_column[i] - closing_price_column[i - 1]) / (high - low) for i in
                   range(1, len(closing_price_column))]
     return label_list
+
+def create_close_difference_labeled_data(data, label_index):
+    future_data = np.roll(data, -1, axis=0)
+    transformed = np.copy(data[:, :])
+    transformed[:, label_index] = np.subtract(future_data, data)[:, label_index]
+    return transformed, 1 #last row is wrong, cut later

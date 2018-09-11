@@ -4,8 +4,8 @@ import pandas as pd
 import numpy as np
 import unittest
 
-import definitions
-import util.data_modifier as dm
+import directory
+import bot.data_modifier as dm
 import os
 
 
@@ -34,7 +34,7 @@ class DataModifierTest(unittest.TestCase):
 
 
     def test_add_indicators(self):
-        df = pd.read_csv(definitions.get_absolute_path('data/BTCUSD300.csv'))
+        df = pd.read_csv(directory.get_absolute_path('data/BTCUSD300.csv'))
         print('normal:', df.shape)
         print(dm.add_SMA_indicator_to_data(df.values).shape)
         print(dm.add_RSI_indicator_to_data(df.values).shape)
@@ -50,4 +50,19 @@ class DataModifierTest(unittest.TestCase):
         print(len(sma) - len(dm.drop_NaN_rows(sma)))
         sma = dm.add_SMA_indicator_to_data(df.values, timeperiod=30)
         print(len(sma) - len(dm.drop_NaN_rows(sma)))
+
+
+    def test_create_close_difference_labeled_data(self):
+        data = np.array([[1, -1],
+                         [2, -2],
+                         [3, -3],
+                         [4, -4],
+                         [5, -5],
+                         [6, -6],
+                         [7, -7],
+                         [8, -8],
+                         [10, -9],
+                         [9, -10],
+                         [11, -11]])
+        print(dm.create_close_difference_labeled_data(data, 0))
 

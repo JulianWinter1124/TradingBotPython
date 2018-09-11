@@ -22,8 +22,10 @@ def main():
             print('--reconfig\t reconfigures the bot by loading vars from config_manager.init_vars.')
             sys.exit()
         elif opt in ("-r", "--reconfig"):
+            print('Reconfiguring Trading Bot...')
             config.init_variables()
             config.save_config()
+            print('...done')
 
     success = config.load_config()
     if not success:

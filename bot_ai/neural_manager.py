@@ -63,7 +63,7 @@ class NeuralManager(): #this class manages multiple neural networks for each pai
             #generator = gen.create_data_generator(pair, batch_size=self.batch_size, n_in=self.n_in, n_features=self.n_features)
             data, labels = gen.read_data_and_labels_from_finished_data_file(pair, n_in=self.n_in, #read labels and data from finished file
                                                                             n_features=self.n_features)
-            split_i = int(len(data) * 0.9) #use 10% as test
+            split_i = int(len(data) * 0.8) #use 20% as test
             history = neur.train_model(data[0:split_i, :], labels[0:split_i, :], data[split_i:, :], labels[split_i:, :],
                                        epochs=self.epochs, shuffle=True, save=True)  # train model
             print('finished training for', pair)
@@ -87,7 +87,7 @@ class NeuralManager(): #this class manages multiple neural networks for each pai
         predictions = dict()
         dates = dict()
         unmodified_data_file = self.read_unmodified_data_file()
-        for pair in unmodified_data_file.keys(): #TODO: Change this to finished data, if processor changes behavior
+        for pair in unmodified_data_file.keys():
             dset = unmodified_data_file[pair]
             data = dset[:, :] #get all data in pair dset
             dates[pair] = data[-1, 1] #get last date from unmodified
@@ -110,18 +110,17 @@ class NeuralManager(): #this class manages multiple neural networks for each pai
         predictions = dict()
         dates = dict()
         unmodified_data_file = self.read_unmodified_data_file()
-        for pair in unmodified_data_file.keys():  # TODO: Change this to finished data, if processor changes behavior
+        for pair in unmodified_data_file.keys():
             dset = unmodified_data_file[pair]
             data = dset[:, :]
             dates[pair] = data[:, 1]
             nolabels = dm.data_to_timeseries_without_labels(data, self.n_in, scalers[pair], [], self.use_scaling, self.use_indicators)
             nolabels = nolabels.reshape((nolabels.shape[0], self.n_in, self.n_features))
             neur: Neural = self.neural_instances[pair]
-            predictions[pair] = neur.predict(nolabels)  # TODO: only okay as long as 'pairs processor = pairs collector'
+            predictions[pair] = neur.predict(nolabels)
             if self.use_scaling:
                 scaler: MinMaxScaler = scalers[pair]
                 predictions[pair] = dm.reverse_normalize_prediction(predictions[pair], self.label_index_in_original_data, self.n_features, scaler)
-            print('predictions for', dates[pair], pair, predictions[pair])
         return dates, predictions
 
 
