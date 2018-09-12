@@ -5,13 +5,14 @@ from itertools import repeat
 import h5py
 
 from bot import API
+from bot import API_offline
 import directory
 
 
 class DataCollector(): #TODO: drop columns
 
     def __init__(self, relative_filepath, currency_pairs=['BTC_USDT'], start_dates=[1405699200],
-                 end_dates=[9999999999], time_period=300, overwrite=False):
+                 end_dates=[9999999999], time_period=300, overwrite=False, offline=False):
         self.filepath = directory.get_absolute_path(relative_filepath)
         directory.ensure_directory(self.filepath)
         self.BASE_URL = 'https://poloniex.com/public?command=returnChartData'
@@ -22,13 +23,14 @@ class DataCollector(): #TODO: drop columns
         self.end_dates = end_dates
         self.overwrite = overwrite #redownload data every time or save progress
         self.create_h5py_file_and_datasets() # make sure h5 file exists and all datasets are created if needed
+        self.offline = offline
 
     def download_and_save(self):
         """
         Main method to call. downloads and saves all data with use of multiple processes
         """
         self._update_latest_dates()
-        param_list = list(zip(self.currency_pairs, self.last_dates, self.end_dates, repeat(self.time_period))) #make a list with all neede parameters
+        param_list = list(zip(self.currency_pairs, self.last_dates, self.end_dates, repeat(self.time_period), repeat(self.offline))) #make a list with all neede parameters
         with mp.Pool(processes=4) as pool:
             res = pool.starmap_async(func=data_downloader, iterable=param_list)
             pool.close() #close pool to not allow new tasks (not really needed)
@@ -136,15 +138,21 @@ class DataCollector(): #TODO: drop columns
         file.close()
         return data
 
-def data_downloader(pair, last_date, end_date, time_period):
+def data_downloader(pair, last_date, end_date, time_period, offline):
     """
     The worker methods which collects crypto data for the given pair and puts it back to queue
     :param queue:
     :param pair_index:
     """
     print('requesting newest data for', last_date)
-    df = API.receive_pair_data(pair, last_date, end_date, time_period)
-    if len(df) == 1 & (df == 0).all(axis=1)[0]:  # No new data?
+    if offline:
+        df = API_offline.receive_pair_data(pair, last_date, end_date, time_period)
+    else:
+        df = API.receive_pair_data(pair, last_date, end_date, time_period)
+    print(len(df))
+    if len(df) == 1 and not offline and (df == 0).all(axis=1)[0]:  # No new data?
+        print('no new data for downloader[' + pair + ']. Latest date: ' + str(last_date))
+    elif len(df) == 0:
         print('no new data for downloader[' + pair + ']. Latest date: ' + str(last_date))
     else:
         last_date = df['date'].tail(1).values[0] + 1  # +1 so that request does not get the same again

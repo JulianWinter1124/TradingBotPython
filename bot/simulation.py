@@ -1,12 +1,12 @@
 import logging
 from collections import defaultdict
 
+from bot import API_offline
 from bot import API
-
 
 class Simulation:
 
-    def __init__(self, dollar_balance, disable_fees=False):
+    def __init__(self, dollar_balance, disable_fees=False, offline=False):
         self.order_history = dict()
         self.time_period = 300
         self.dollar_balance = dollar_balance
@@ -14,6 +14,7 @@ class Simulation:
         self.currency_balance = defaultdict(lambda:0)
         self.maker_fee = 0.001 #maker fee from https://poloniex.com/fees/ (lowest trade volume)
         self.taker_fee = 0.002 #taker fee from https://poloniex.com/fees/
+        self.offline = offline
 
     def buy_amount(self, pair, amount_in_currency):
         """
@@ -22,7 +23,7 @@ class Simulation:
         :param amount_in_currency: the maximum amount to be bought, if this costs more than dollar is available spend all money
         :return: None
         """
-        price_for_one_unit = API.receive_latest_pair_price(pair, self.time_period)
+        price_for_one_unit = self._price_for_one_unit(pair)
         if self.disable_fees:
             spending_actual = price_for_one_unit * amount_in_currency
         else:
@@ -48,7 +49,7 @@ class Simulation:
         """
         if self.dollar_balance < amount_in_dollar:
             amount_in_dollar = self.dollar_balance
-        price_for_one_unit = API.receive_latest_pair_price(pair, self.time_period)
+        price_for_one_unit = self._price_for_one_unit(pair)
         self.dollar_balance -= amount_in_dollar
         if not self.disable_fees:
             amount_in_dollar -= amount_in_dollar*self.taker_fee #use taker fee in this simulation
@@ -58,6 +59,11 @@ class Simulation:
         logging.info('Bought' + currency + 'for%d' %amount_in_dollar)
         logging.info('You now have: %d' %self.currency_balance[currency])
 
+    def _price_for_one_unit(self, pair):
+        if self.offline:
+            return API_offline.receive_latest_pair_price(pair, self.time_period)
+        else:
+            return  API.receive_latest_pair_price(pair, self.time_period)
 
     def sell(self, currency, amount):
         """
@@ -72,7 +78,7 @@ class Simulation:
             self.currency_balance[currency] -= amount
             if not self.disable_fees:
                 amount -= amount*self.taker_fee #use taker fee in this simulation
-            price_for_one_unit = API.receive_latest_pair_price('USDT_'+currency, self.time_period)
+            price_for_one_unit = price_for_one_unit = self._price_for_one_unit("USDT_"+currency)
             earning = price_for_one_unit * amount
             self.dollar_balance += earning
         else:
@@ -106,7 +112,7 @@ class Simulation:
         for cur in self.currency_balance:
             if cur == 'USDT':
                 continue
-            price_for_one_unit = API.receive_latest_pair_price('USDT_' + cur, self.time_period)
+            price_for_one_unit = self._price_for_one_unit("USDT_"+cur)
             sum += self.currency_balance[cur] * price_for_one_unit
         return sum
 

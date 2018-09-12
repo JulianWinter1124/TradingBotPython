@@ -71,7 +71,7 @@ class DataProcessor():
                 self._save_scaler(dset_name)
             else:
                 print("scaler is old")
-            print('completed writing ' + dset_name + ' data to file')
+            print('completed writing ' + dset_name + ' timeseries data to file')
         finished_file.close()
 
     def get_number_of_features(self):

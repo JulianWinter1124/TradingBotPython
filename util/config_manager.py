@@ -1,6 +1,8 @@
 import directory
 import pickle
 
+
+
 class BotConfigManager():
 
     def __init__(self):
@@ -8,8 +10,8 @@ class BotConfigManager():
         self.load_config()
 
     def load_collector_settings(self): #TODO: placeholder implementation
-        #relative_filepath, currency_pairs, start_dates=[1405699200], end_dates, time_periods, overwrite
-        return self.unmodified_data_filepath, self.pairs, self.start_dates, self.end_dates, self.timesteps, self.redownload_data
+        #relative_filepath, currency_pairs, start_dates=[1405699200], end_dates, time_periods, overwrite, offline
+        return self.unmodified_data_filepath, self.pairs, self.start_dates, self.end_dates, self.timesteps, self.redownload_data, self.offline
 
     def load_processor_settings(self): #TODO: placeholder implementation
         #database_filepath, output_filepath, use_indicators=True, use_scaling=True, drop_data_columns_indices: list = [], label_column_indices=[0], n_in=30, n_out=2, n_out_jumps=1, overwrite_scaler=False)
@@ -32,6 +34,9 @@ class BotConfigManager():
         # filepath, timesteps, date_column, close_column, n_out_jumps, overwrite_history
         return 'data/training_prediction_history.pickle', self.timesteps, self.data_date_column_indice, self.data_label_column_indices[0], self.n_out_jumps, True
 
+    def set_offline_mode(self, bool):
+        self.offline = bool
+
     def init_variables(self):
         self.unmodified_data_filepath = 'data/unmodified_data.h5'
         self.finished_data_filepath = 'data/finished_data.hdf5'
@@ -46,11 +51,11 @@ class BotConfigManager():
         self.n_in = 20 # number of input data before the current data
         self.n_out = 4 # number of additional predicted labels
         self.n_out_jumps = 1 # every n_out_jumps data point is beeing predicted. e.g 2 = every second future datapoint is beeing predicted
-        self.redownload_data = False #wether all data should be redownloaded. If you alter start, end or timesteps this has to be set to true
+        self.redownload_data = True #wether all data should be redownloaded. If you alter start, end or timesteps this has to be set to true
         self.use_scaling = True #Use scaling in data_processor and anywhere else?
         self.overwrite_scalers = False #Use old scalers or overwrite at startup? this should be True. If you want to reset scalers just delete files in /datascaler
         self.use_indicators = True #should indicators be added?
-        self.overwrite_models = False #overwrite models at startup. default=False
+        self.overwrite_models = True #overwrite models at startup. default=False
         self.overwrite_history = self.overwrite_models #overwrites prediction history at startup. This has no big impact on bot functions
         self.batch_size = 100 #The number of datarows in one batch
         self.epochs = 50 #The maximum number of epochs (early stopping might trigger)
@@ -59,8 +64,14 @@ class BotConfigManager():
         self.activation_function = 'LeakyReLU' #The used activation function in all besides the last layer (last layer is softmax default)
         self.loss_function = 'mse' #The loss function to determine loss. there might be better stuff than mse
         self.optimizer = 'adam' #All praise adam our favourite optimizer
-        self.latest_training_run = 0 #this is a timestamp when the latest training run was executed
+        self.latest_training_run = 0 #this is a timestamp when the latest training run was executed high number=never retrain
         self.train_every_n_seconds = 6 * 60 * 60 # retrain every n-seconds
+        self.offline = False #This is the default param for offline mode. gets overwritten by --offline command (True)
+
+    def setup(self):
+        from bot import API_offline
+        if self.offline:
+            API_offline.load_data_and_download_if_not_existent(self.pairs, self.timesteps) #download data if offline mode is true
 
     def save_config(self):
         directory.ensure_directory(self.filepath)

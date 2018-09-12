@@ -31,7 +31,7 @@ class Neural():
         from keras.layers import Dense, Activation, LSTM, Dropout, LeakyReLU, Flatten
         if self.overwrite or not os.path.isfile(self.filepath):  # Is there no existing model?
             self.model = Sequential() #Start by using this
-            for i in range(0, len(self.layer_units) - 1):
+            for i in range(0, len(self.layer_units)):
                 self.model.add(
                     LSTM(units=self.layer_units[i], input_shape=(self.n_in, self.n_features), return_sequences=True)) #return_sequences=shape is passed along and not altered
                 if self.activation_function == 'LeakyReLU':
@@ -39,10 +39,6 @@ class Neural():
                 else:
                     self.model.add(Activation(self.activation_function)) #add activation
                 self.model.add(Dropout(0.5)) #How many Neurons should be discarded? 0.5 = 50%
-            self.model.add(
-                LSTM(units=self.layer_units[-1], input_shape=(self.n_in, self.n_features), return_sequences=True, #The last LSTM layer should be activated by softmax
-                     activation='softmax'))
-            self.model.add(Dropout(0.5))
             self.model.add(Flatten()) #flattens the output shape so it fits in a Dense block
             self.model.add(Dense(self.output_size))
             self.model.compile(loss=self.loss_function, optimizer=self.optimizer)
