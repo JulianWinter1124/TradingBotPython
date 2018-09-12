@@ -1,4 +1,4 @@
-###Implementing a Cryptocurrency Trading Bot
+# Implementing a Cryptocurrency Trading Bot
 
 This is the Code for the bachelor thesis of Julian Winter
 
