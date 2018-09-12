@@ -15,7 +15,7 @@ Make a new Python environment and run the following command to install all libra
 
 > pip install -r requirements.txt
 
-You can also install all libraries manually by reading the section **3.2 Programmiersprache und Bibliotheken** in the bachelor thesis.
+You can also install all libraries manually by reading the section **3.2 Programmiersprache und Bibliotheken** in the bachelor thesis and installing them one by one.
 
 For example:
 
