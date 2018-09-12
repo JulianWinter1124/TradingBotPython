@@ -26,7 +26,7 @@ For example:
 
 If desired, change the settings in /bot/config_manager.py in the *init_vars* method
 
-To apply the changes run the bot with the --reconfig argument described in ##Running the bot.
+To apply the changes run the bot with the --reconfig argument described in [Running the bot](#running-the-bot).
 
 
 ## Running the bot
