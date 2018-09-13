@@ -43,9 +43,10 @@ def main():
     minimum_loop_time = config.timesteps*1.0 * (1-offline) #This is equal to timesteps times alpha or zero if offline
     tradingbot = TradingBot(config)
     simulation = Simulation(500, False, offline)
+    simulation2 = Simulation(500, False, offline)
     try:
         while True:
-            exec_time = tradingbot.run(simulation)
+            exec_time = tradingbot.run(simulation, simulation2)
             print('Loop execution took:', exec_time,
                   'seconds. Waiting %f seconds. (It is safe to force shutdown now)' % max(minimum_loop_time - exec_time,
                                                                                           0))

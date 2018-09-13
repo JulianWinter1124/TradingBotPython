@@ -149,11 +149,13 @@ def data_downloader(pair, last_date, end_date, time_period, offline):
         df = API_offline.receive_pair_data(pair, last_date, end_date, time_period)
     else:
         df = API.receive_pair_data(pair, last_date, end_date, time_period)
-    print(len(df))
-    if len(df) == 1 and not offline and (df == 0).all(axis=1)[0]:  # No new data?
+    if df is None:
         print('no new data for downloader[' + pair + ']. Latest date: ' + str(last_date))
     elif len(df) == 0:
         print('no new data for downloader[' + pair + ']. Latest date: ' + str(last_date))
+    elif len(df) == 1 and not offline and (df == 0).all(axis=1)[0]:  # No new data?
+        print('no new data for downloader[' + pair + ']. Latest date: ' + str(last_date))
+
     else:
         last_date = df['date'].tail(1).values[0] + 1  # +1 so that request does not get the same again
         print('New Data found for downloader[' + pair + ']. New latest date: ' + str(last_date))

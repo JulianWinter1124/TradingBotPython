@@ -62,7 +62,7 @@ def receive_pair_data(pair, start_date, end_date, time_period):
     if lag == 0:
         return df.loc[(df['date'] >= start_date) & (df['date'] <= end_date)]
     elif lag < 0:
-        print('NO NEW DATA AVAILABLE')
+        print('NO NEW DATA AVAILABLE. Since this is offline mode you can shutdown the bot now')
     else:
         return df.loc[(df['date'] >= start_date) & (df['date'] <= end_date)].iloc[0:-lag]
 

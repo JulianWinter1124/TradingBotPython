@@ -1,4 +1,5 @@
 import math
+from random import randint
 
 import numpy as np
 
@@ -47,7 +48,7 @@ def decide_action_on_prediction(pair, pred, state, current_price, exclude_curren
                 j += 1
         elif sign == -1:
             if calculated_tanh_risk >= tanh_risk: #This means sell
-                cur = state.extract_first_currency_from_pair(pair)
+                cur = state.extract_second_currency_from_pair(pair)
                 amount = state.get_currency_balance(cur) * 0.998  # sell 98%
                 action = (pair, 'sell', amount, None)
                 break
@@ -55,6 +56,21 @@ def decide_action_on_prediction(pair, pred, state, current_price, exclude_curren
                 j += 1
     return action
 
+def make_random_action(pair, state, current_price):
+    action = (pair, 'hold', 0, None)
+    r = randint(0, 2)
+    if r == 0:
+        max_loss = current_price * 0.05  # The maximum amount you are willing to lose
+        amount = (state.get_dollar_balance() * 0.002) / max_loss  # the amount to invest. formula from https://www.investopedia.com/terms/p/positionsizing.asp
+        stop_loss = current_price - max_loss  # put stop loss here
+        action = (pair, 'buy', amount, stop_loss)  # put together action
+    elif r == 1:
+        cur = state.extract_second_currency_from_pair(pair)
+        amount = state.get_currency_balance(cur) * 0.998  # sell 98%
+        action = (pair, 'sell', amount, None)
+    elif r == 2:
+        pass #hold
+    return action
 
 def calc_tanh_diff(distance, min_distance):
     """

@@ -1,13 +1,17 @@
 import logging
+import pandas as pd
 from collections import defaultdict
 
 from bot import API_offline
 from bot import API
 
+from matplotlib import pyplot as plt
+
 class Simulation:
 
     def __init__(self, dollar_balance, disable_fees=False, offline=False):
         self.order_history = dict()
+        self.account_standing_history = pd.DataFrame(columns=['date', 'dollars', 'account worth'])
         self.time_period = 300
         self.dollar_balance = dollar_balance
         self.disable_fees = disable_fees
@@ -76,10 +80,10 @@ class Simulation:
             if self.currency_balance[currency] < amount:
                 amount = self.currency_balance[currency]
             self.currency_balance[currency] -= amount
-            if not self.disable_fees:
-                amount -= amount*self.taker_fee #use taker fee in this simulation
-            price_for_one_unit = price_for_one_unit = self._price_for_one_unit("USDT_"+currency)
+            price_for_one_unit = self._price_for_one_unit("USDT_"+currency)
             earning = price_for_one_unit * amount
+            if not self.disable_fees:
+                earning -= earning*self.taker_fee #use taker fee in this simulation
             self.dollar_balance += earning
         else:
             logging.error('You do not possess ' + currency)
@@ -148,6 +152,11 @@ class Simulation:
         print("dollar balance is now:", self.dollar_balance)
         print('account worth is now:', self.get_account_worth())
 
+    def update_account_standing_history(self, date):
+        if not self.account_standing_history['date'].isin([date]).any():
+            self.account_standing_history.loc[len(self.account_standing_history)] = [date, self.dollar_balance, self.get_account_worth()]
+
+
     def print_trades(self):
         """
         Print all made trades in the most none pretty way
@@ -166,6 +175,15 @@ class Simulation:
 
     def restore(self):
         pass
+
+    def plot_account_history(self, label):
+        print(self.account_standing_history)
+        plt.plot(self.account_standing_history['date'], self.account_standing_history['dollars'], label='dollars')
+        plt.plot(self.account_standing_history['date'], self.account_standing_history['account worth'], label='Account worth')
+        plt.legend()
+        plt.title(label)
+        plt.show()
+
 
     def calc_win_margin_price(self, price, up_down_signum):
         """

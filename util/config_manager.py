@@ -55,16 +55,16 @@ class BotConfigManager():
         self.use_scaling = True #Use scaling in data_processor and anywhere else?
         self.overwrite_scalers = False #Use old scalers or overwrite at startup? this should be True. If you want to reset scalers just delete files in /datascaler
         self.use_indicators = True #should indicators be added?
-        self.overwrite_models = True #overwrite models at startup. default=False
-        self.overwrite_history = self.overwrite_models #overwrites prediction history at startup. This has no big impact on bot functions
-        self.batch_size = 100 #The number of datarows in one batch
+        self.overwrite_models = False #overwrite models at startup. default=False
+        self.overwrite_history = True #overwrites prediction history at startup. This has no big impact on bot functions
+        self.batch_size = 64 #The number of datarows in one batch
         self.epochs = 50 #The maximum number of epochs (early stopping might trigger)
         self.n_features = 6 + 8 * self.use_indicators - len(self.drop_data_column_indices) # There are 6 columns normally, add 8 if indicators are used and substract all dropped columns
-        self.layer_sizes_list = [100, 20] #The number of neurons in each layer. The List should be at minimum 1 and can be as large as wanted
+        self.layer_sizes_list = [100] #The number of neurons in each layer. The List should be at minimum 1 and can be as large as wanted
         self.activation_function = 'LeakyReLU' #The used activation function in all besides the last layer (last layer is softmax default)
         self.loss_function = 'mse' #The loss function to determine loss. there might be better stuff than mse
         self.optimizer = 'adam' #All praise adam our favourite optimizer
-        self.latest_training_run = 0 #this is a timestamp when the latest training run was executed high number=never retrain
+        self.latest_training_run = 999999999999 #this is a timestamp when the latest training run was executed high number=never retrain
         self.train_every_n_seconds = 6 * 60 * 60 # retrain every n-seconds
         self.offline = False #This is the default param for offline mode. gets overwritten by --offline command (True)
 
@@ -75,6 +75,7 @@ class BotConfigManager():
 
     def save_config(self):
         directory.ensure_directory(self.filepath)
+        print('last training run', self.latest_training_run)
         f = open(self.filepath, 'wb')
         pickle.dump(self.__dict__, f, protocol=pickle.HIGHEST_PROTOCOL)
         f.close()
