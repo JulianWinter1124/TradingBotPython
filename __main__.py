@@ -1,5 +1,6 @@
 import getopt
 import logging
+import signal
 import sys
 import time
 
@@ -10,13 +11,14 @@ from util.config_manager import BotConfigManager
 
 
 def main():
+    signal.signal(signal.SIGINT, signal.default_int_handler)
     logging.getLogger().setLevel(logging.INFO)
     #logging.disable(logging.INFO) #If you want to disable INFO logging uncomment this
     logging.disable(logging.NOTSET) #if you want to display INFO again uncomment this
     config = BotConfigManager()
     offline = False
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hr", ["help", "reconfig", "offline"])
+        opts, args = getopt.getopt(sys.argv[1:], "hr", ["help", "reconfig", "offline, log"])
     except getopt.GetoptError:
         print('unknwon options.')
         print('run "__main__.py -h" for help')
@@ -34,6 +36,9 @@ def main():
             print('running in offline mode...')
             offline = True
             API_offline.init_global_lag(1000)
+        if opt in ('--log'):
+            print("Setting log level to", arg)
+            logging.getLogger().setLevel(arg)
 
     success = config.load_config()
     if not success:

@@ -187,7 +187,7 @@ class Simulation:
         plt.plot(self.account_standing_history['date'], self.account_standing_history['account worth'], label='Account worth')
         plt.legend()
         plt.title(title)
-        plt.show()
+        plt.show(block=False)
 
 
     def calc_win_margin_price(self, price, up_down_signum):
