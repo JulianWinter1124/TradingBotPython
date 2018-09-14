@@ -7,9 +7,12 @@ from bot import API
 
 from matplotlib import pyplot as plt
 
+logger = logging.getLogger('simulation')
+
 class Simulation:
 
-    def __init__(self, dollar_balance, disable_fees=False, offline=False):
+    def __init__(self, dollar_balance, disable_fees=False, offline=False, label='bot_name'):
+        self.label = label
         self.order_history = dict()
         self.account_standing_history = pd.DataFrame(columns=['date', 'dollars', 'account worth'])
         self.time_period = 300
@@ -41,8 +44,8 @@ class Simulation:
         bought = spending_actual/price_for_one_unit
         currency = self.extract_second_currency_from_pair(pair)
         self.currency_balance[currency] += bought
-        logging.info('Bought' + currency + 'for%d' %spending_actual)
-        logging.info('You now have: %d' %self.currency_balance[currency])
+        logger.info('{}: Bought {} of {} for {}'.format(self.label, bought, currency, spending_actual))
+        logger.info('{}: You now have {} of {}'.format(self.label, self.currency_balance[currency], currency))
 
     def buy_with_amount(self, pair, amount_in_dollar):
         """
@@ -60,8 +63,8 @@ class Simulation:
         bought = amount_in_dollar/price_for_one_unit
         currency = self.extract_second_currency_from_pair(pair)
         self.currency_balance[currency] += bought
-        logging.info('Bought' + currency + 'for%d' %amount_in_dollar)
-        logging.info('You now have: %d' %self.currency_balance[currency])
+        logger.info('{}: Bought {} for {}$'.format(self.label, currency, amount_in_dollar))
+        logger.info('{}: You now have {} {}'.format(self.label, self.currency_balance[currency], currency))
 
     def _price_for_one_unit(self, pair):
         if self.offline:
@@ -85,8 +88,10 @@ class Simulation:
             if not self.disable_fees:
                 earning -= earning*self.taker_fee #use taker fee in this simulation
             self.dollar_balance += earning
+            logger.info('{}: Sold {} {} for {}$'.format(self.label, amount, currency, earning))
+            logger.info('{}: You now own {} of {}'.format(self.label, self.currency_balance[currency], currency))
         else:
-            logging.error('You do not possess ' + currency)
+            logger.error('{}: You do not possess {}'.format(self.label, currency))
 
     def withdraw(self, amount): #don't. its too pricey, 25$ for one withdrawal... puh
         self.dollar_balance -= amount
@@ -139,18 +144,16 @@ class Simulation:
         if not date in self.order_history[pair]:
             self.order_history[pair][date] = action # add the action with date as key to the pair dictionary
         else:
-            print('Action already taken.')
+            logger.warning('{}: Action already taken for date {}'.format(self.label, date))
             return
         if actionstr is 'hold':
-            print('Not trading anything', pair)
+            logger.info('{}: Holding {}'.format(self.label, pair))
         elif actionstr is 'buy':
             self.buy_amount(pair, amount)
         elif actionstr is 'sell':
             if amount > 0:
                 cur = self.extract_second_currency_from_pair(pair)
                 self.sell(cur, amount)
-        print("dollar balance is now:", self.dollar_balance)
-        print('account worth is now:', self.get_account_worth())
 
     def update_account_standing_history(self, date):
         if not self.account_standing_history['date'].isin([date]).any():
@@ -161,7 +164,6 @@ class Simulation:
         """
         Print all made trades in the most none pretty way
         Form follows function?
-        :return:
         """
         if self.order_history is not None and len(self.order_history) > 0:
             for pair, datedict in self.order_history.items():
@@ -176,12 +178,15 @@ class Simulation:
     def restore(self):
         pass
 
-    def plot_account_history(self, label):
-        print(self.account_standing_history)
+    def plot_account_history(self, title):
+        """
+        Visualizes the account standing history by ploting both amount of dollars and account worth
+        :param title: the title of the chart
+        """
         plt.plot(self.account_standing_history['date'], self.account_standing_history['dollars'], label='dollars')
         plt.plot(self.account_standing_history['date'], self.account_standing_history['account worth'], label='Account worth')
         plt.legend()
-        plt.title(label)
+        plt.title(title)
         plt.show()
 
 

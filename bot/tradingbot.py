@@ -1,3 +1,4 @@
+import logging
 import time
 from collections import defaultdict
 
@@ -19,12 +20,12 @@ class TradingBot():
         self.prediction_history = PredictionHistory(*self.config_manager.load_prediction_history_settings())
         self.training_prediction_history = PredictionHistory(*self.config_manager.load_training_prediction_history_settings())
         self.count = 0
-        self.display_plot_interval = 50
 
 
     #execute all task within here
     def run(self, state, state2):
-        start = time.time()
+
+        start = time.time() #Save start for execution time
 
         self.data_collector.download_and_save() #collect latest data for all pairs
 
@@ -46,20 +47,14 @@ class TradingBot():
 
         else:
             print('skipping training because not enough time has passed since')
-        #
-        # dates, predictions = self.neural_manager.predict_all_data(scalers)
-        #
-        # self.training_prediction_history.add_multiple_predictions('USDT_BTC', dates['USDT_BTC'], predictions['USDT_BTC'])
-        # self.training_prediction_history.plot_prediction_history('USDT_BTC', self.data_collector.get_original_data('USDT_BTC'))
 
-
-        dates, predictions = self.neural_manager.predict_latest_date(scalers, look_back=0) #make latest predictions for latest data column (unmodified_data)
+        dates, predictions = self.neural_manager.predict_latest_date(scalers) #make latest predictions for latest data column (unmodified_data)
 
         for pair, values in predictions.items():
 
             self.prediction_history.add_prediction(pair, dates[pair], values) #add prediction to the history
 
-            if self.count % self.display_plot_interval == 0:
+            if self.count % self.config_manager.display_plot_interval == 0: #only plot at given interval
                 self.prediction_history.plot_prediction_history(pair, self.data_collector.get_original_data(pair)) #plot all predictions from history
 
             closing_price = self.data_collector.get_latest_closing_price(pair)
@@ -75,14 +70,12 @@ class TradingBot():
             state2.perform_action(dates[pair], action=action_random)
 
         min_date = min(dates.values())
-        state.update_account_standing_history(min_date)
+        state.update_account_standing_history(min_date) #Update the account_history data after actions have been performed
         state2.update_account_standing_history(min_date)
 
-        if self.count % self. display_plot_interval == 0:
+        if self.count % self.config_manager.display_plot_interval == 0: #only plot at given interval
             state.plot_account_history('actual bot')
             state2.plot_account_history('random bot')
-
-        print(state2.currency_balance)
 
         self.count += 1
 
@@ -90,10 +83,5 @@ class TradingBot():
 
     def perform_shutdown(self):
         self.config_manager.save_config()
-        print("shutting down")
+        logging.warning("shutting down")
         raise SystemExit
-
-    def parse_settings(self, config):
-        pass
-
-

@@ -1,3 +1,5 @@
+import logging
+
 import directory
 import pickle
 
@@ -53,7 +55,7 @@ class BotConfigManager():
         self.n_out_jumps = 1 # every n_out_jumps data point is beeing predicted. e.g 2 = every second future datapoint is beeing predicted
         self.redownload_data = True #wether all data should be redownloaded. If you alter start, end or timesteps this has to be set to true
         self.use_scaling = True #Use scaling in data_processor and anywhere else?
-        self.overwrite_scalers = False #Use old scalers or overwrite at startup? this should be True. If you want to reset scalers just delete files in /datascaler
+        self.overwrite_scalers = False #Use old scalers or overwrite at startup? this should be False.
         self.use_indicators = True #should indicators be added?
         self.overwrite_models = False #overwrite models at startup. default=False
         self.overwrite_history = True #overwrites prediction history at startup. This has no big impact on bot functions
@@ -64,9 +66,10 @@ class BotConfigManager():
         self.activation_function = 'LeakyReLU' #The used activation function in all besides the last layer (last layer is softmax default)
         self.loss_function = 'mse' #The loss function to determine loss. there might be better stuff than mse
         self.optimizer = 'adam' #All praise adam our favourite optimizer
-        self.latest_training_run = 999999999999 #this is a timestamp when the latest training run was executed high number=never retrain
+        self.latest_training_run = 1536938929 #this is a timestamp when the latest training run was executed high number=never retrain
         self.train_every_n_seconds = 6 * 60 * 60 # retrain every n-seconds
         self.offline = False #This is the default param for offline mode. gets overwritten by --offline command (True)
+        self.display_plot_interval = 50 #The loop interval at  which plots are plotted. 50=plots are drawn every 50 tradingbot.run() completions. when not using offline mode this should be equals 1
 
     def setup(self):
         from bot import API_offline
@@ -74,13 +77,14 @@ class BotConfigManager():
             API_offline.load_data_and_download_if_not_existent(self.pairs, self.timesteps) #download data if offline mode is true
 
     def save_config(self):
+        logging.info("saving config")
         directory.ensure_directory(self.filepath)
-        print('last training run', self.latest_training_run)
         f = open(self.filepath, 'wb')
         pickle.dump(self.__dict__, f, protocol=pickle.HIGHEST_PROTOCOL)
         f.close()
 
     def load_config(self):
+        logging.info("loading config")
         if directory.file_exists(self.filepath):
             f = open(self.filepath, 'rb')
             tmp_dict = pickle.load(f)

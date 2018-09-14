@@ -3,6 +3,7 @@ import logging
 import numpy as np
 import talib
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
+logger = logging.getLogger('data_modifier')
 
 def normalize_data_MinMax(data):
     """
@@ -11,7 +12,7 @@ def normalize_data_MinMax(data):
     :return: scaled data, used scaler
     """
     scaler = MinMaxScaler()
-    print('scaler fit on data with shape:', data.shape)
+    logger.info('scaler fit on data with shape: {}'.format(data.shape))
     data = scaler.fit_transform(data)
     return data, scaler
 
@@ -23,7 +24,7 @@ def normalize_data_Standard(data):
     :return: scaled data, used scaler
     """
     scaler = StandardScaler()
-    print('scaler fit on data with shape:', data.shape)
+    logger.info('scaler fit on data with shape: {}'.format(data.shape))
     data = scaler.fit_transform(data)
     return data, scaler
 
@@ -51,7 +52,6 @@ def reverse_normalize_prediction(prediction, label_index_in_original_data, n_fea
     :return: the unscaled predictions in the same shape as prediction
     """
     cols = list()
-    print(prediction.shape, n_features)
     for i in range(prediction.shape[1]):
         pred_column = prediction[:, i]
         dummy_data = np.zeros(shape=(prediction.shape[0], n_features)) #Make array with same shape as original data
@@ -87,8 +87,9 @@ def data_to_supervised_timeseries(data, n_in=1, n_out=1, n_out_jumps=1, drop_col
         concat = concat[n_in:]# NaN is always dropped
     else:
         concat = concat[n_in:-n_out*n_out_jumps]
-    print(concat.shape)
-    return np.atleast_2d(concat)
+    concat = np.atleast_2d(concat)
+    logger.info('Converted data to timeseries. It has the shape {}'.format(concat.shape))
+    return concat
 
 def data_to_single_column_timeseries_without_labels(data, n_in, scaler, drop_columns_indices=[], use_scaling=True, use_indicators=True):
     """

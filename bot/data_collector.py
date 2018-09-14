@@ -7,7 +7,7 @@ import h5py
 from bot import API
 from bot import API_offline
 import directory
-
+logger = logging.getLogger('data_collector')
 
 class DataCollector(): #TODO: drop columns
 
@@ -18,9 +18,9 @@ class DataCollector(): #TODO: drop columns
         self.BASE_URL = 'https://poloniex.com/public?command=returnChartData'
         self.time_period = time_period
         self.currency_pairs = currency_pairs #All crypto pairs you want to download and predict
-        self.start_dates = start_dates #Starting date list for pairs
-        self.last_dates = start_dates  # The last dates that had data available
-        self.end_dates = end_dates
+        self.start_dates = start_dates.copy() #Starting date list for pairs
+        self.last_dates = start_dates.copy()  # The last dates that had data available
+        self.end_dates = end_dates.copy()
         self.overwrite = overwrite #redownload data every time or save progress
         self.create_h5py_file_and_datasets() # make sure h5 file exists and all datasets are created if needed
         self.offline = offline
@@ -45,7 +45,7 @@ class DataCollector(): #TODO: drop columns
                 dset[-data.shape[0]:] = data
                 dset.flush()
                 datafile.flush()
-                print('completed writing ' + pair + ' data to file')
+                logger.info('completed writing ' + pair + ' data to file')
             datafile.close()
 
 
@@ -71,14 +71,16 @@ class DataCollector(): #TODO: drop columns
         directory.ensure_directory(self.filepath)
         if self.overwrite:
             database = h5py.File(self.filepath, 'w', libver='latest', swmr=False)
+            logger.info('overwriting unmodified output file {}'.format(self.filepath))
         else:
             database = h5py.File(self.filepath, libver='latest', swmr=False)
+            logger.info('Loaded unmodified output file from {}'.format(self.filepath))
         #Create Datasets
         for pair in self.currency_pairs:
             if pair in database:
-                print('Pair: ' + pair + 'already exists in' + str(database) + '...continuing')
+                logger.info('Dataset: ' + pair + 'already exists in' + str(database) + '...continuing')
             else:
-                print('Pair: ' + pair + 'was not found in' + str(database) + '...creating new dataset')
+                logger.info('Dataset: ' + pair + 'was not found in' + str(database) + '...creating new dataset')
                 dset = database.create_dataset(pair, (0, 8), maxshape=(None, 8), dtype='float64')
                 dset.flush()
         database.swmr_mode = True #switch on swmr mode to allow multiple readers at once
@@ -95,7 +97,7 @@ class DataCollector(): #TODO: drop columns
             for i in range(len(self.currency_pairs)):
                 dset = file[self.currency_pairs[i]]
                 if not len(dset) == 0:
-                    date = dset[-1, 1]#TODO: might replace second index with variable
+                    date = dset[-1, 1]
                     dates[self.currency_pairs[i]] = date
         file.close()
         return dates
@@ -144,19 +146,19 @@ def data_downloader(pair, last_date, end_date, time_period, offline):
     :param queue:
     :param pair_index:
     """
-    print('requesting newest data for', last_date)
+    logger.info('requesting newest {} data for date {}'.format(pair, last_date))
     if offline:
         df = API_offline.receive_pair_data(pair, last_date, end_date, time_period)
     else:
         df = API.receive_pair_data(pair, last_date, end_date, time_period)
     if df is None:
-        print('no new data for downloader[' + pair + ']. Latest date: ' + str(last_date))
+        logger.warning('no new data for downloader[' + pair + ']. Latest date: ' + str(last_date))
     elif len(df) == 0:
-        print('no new data for downloader[' + pair + ']. Latest date: ' + str(last_date))
+        logger.warning('no new data for downloader[' + pair + ']. Latest date: ' + str(last_date))
     elif len(df) == 1 and not offline and (df == 0).all(axis=1)[0]:  # No new data?
-        print('no new data for downloader[' + pair + ']. Latest date: ' + str(last_date))
+        logger.warning('no new data for downloader[' + pair + ']. Latest date: ' + str(last_date))
 
     else:
         last_date = df['date'].tail(1).values[0] + 1  # +1 so that request does not get the same again
-        print('New Data found for downloader[' + pair + ']. New latest date: ' + str(last_date))
+        logger.info('New Data found for downloader[' + pair + ']. New latest date: ' + str(last_date))
         return (pair, df.values)

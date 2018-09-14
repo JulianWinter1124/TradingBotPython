@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.utils import shuffle
 
 
-class DataGenerator:
+class DataGenerator: #this class reads files and makes them available as generators or as one big np.array
     
     def __init__(self, finished_data_filepath='data/finished_data.hdf5'):
         self.finished_data_filepath = finished_data_filepath

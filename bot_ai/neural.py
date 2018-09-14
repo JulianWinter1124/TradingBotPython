@@ -20,7 +20,7 @@ class Neural():
         self.output_size = output_size #the output size should be n_out + 1
         self.model: Sequential = None
         # From https://www.kaggle.com/cbryant/keras-cnn-with-pseudolabeling-0-1514-lb/ might need tuning
-        self.earlyStopping = EarlyStopping(monitor='val_loss', patience=10, verbose=0, mode='min') #If there are 10 epochs without progression in val_loss, stop the training
+        self.earlyStopping = EarlyStopping(monitor='val_loss', patience=5, verbose=0, mode='min') #If there are 10 epochs without progression in val_loss, stop the training
         self.mcp_save = ModelCheckpoint(self.filepath, save_best_only=True, monitor='val_loss', mode='min', verbose=1) # Saves the model when there is a better one
 
     def load_or_build_model(self):

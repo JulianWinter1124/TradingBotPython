@@ -1,4 +1,4 @@
-import datetime
+import logging
 import pickle
 
 import numpy as np
@@ -6,6 +6,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 import directory
+
+logger = logging.getLogger('prediction_history')
 
 #a class to store all predictions and visualize them
 class PredictionHistory():
@@ -31,13 +33,16 @@ class PredictionHistory():
         if pair in self.history:
             if not prediction_date in self.history[pair]:
                 self.history[pair][prediction_date] = prediction #add prediction, if no prediction for that date is available,
+                logger.info('prediction for {} at {} put into history.'.format(pair, prediction_date))
             else:
-                print('prediction for', prediction_date, 'already in history. Skipping')
+                logger.warning('prediction for {} already in history. Skipping.'.format(prediction_date))
                 return
         else:
             self.history[pair] = dict() #if no prediction for that pair has been saved yet, make a new dict
             self.history[pair][prediction_date] = prediction
+        logger.info('prediction for {} at {} put into history.'.format(pair, prediction_date))
         self.save_to_file() #save history after each addition
+
 
     def add_multiple_predictions(self, pair, dates, predictions):
         """
@@ -54,9 +59,9 @@ class PredictionHistory():
             if pair in self.history:
                 if not prediction_date in self.history[pair]:
                     self.history[pair][prediction_date] = prediction
-                    print(prediction)
+                    logger.info('prediction for {} at {} put into history'.format(pair, dates[i]))
                 else:
-                    print('prediction for', prediction_date, 'already in history. Skipping')
+                    logger.warning('prediction for', prediction_date, 'already in history. Skipping')
                     return
             else:
                 self.history[pair] = dict()
@@ -89,6 +94,7 @@ class PredictionHistory():
         if directory.file_exists(self.filepath):
             with open(self.filepath, 'rb') as handle:
                 self.history = pickle.load(handle)
+            logger.info('loaded history from {}', self.filepath)
 
     def save_to_file(self):
         """
@@ -96,6 +102,7 @@ class PredictionHistory():
         """
         with open(self.filepath, 'wb') as handle:
             pickle.dump(self.history, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        logger.info('prediction history saved to {}'.format(self.filepath))
 
     def clear_history(self):
         """
@@ -104,3 +111,4 @@ class PredictionHistory():
         """
         del self.history
         self.history = dict()
+        logger.info('History cleared')

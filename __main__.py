@@ -1,4 +1,5 @@
 import getopt
+import logging
 import sys
 import time
 
@@ -9,6 +10,9 @@ from util.config_manager import BotConfigManager
 
 
 def main():
+    logging.getLogger().setLevel(logging.INFO)
+    #logging.disable(logging.INFO) #If you want to disable INFO logging uncomment this
+    logging.disable(logging.NOTSET) #if you want to display INFO again uncomment this
     config = BotConfigManager()
     offline = False
     try:
@@ -40,17 +44,16 @@ def main():
 
     config.set_offline_mode(offline)
     config.setup()
-    minimum_loop_time = config.timesteps*1.0 * (1-offline) #This is equal to timesteps times alpha or zero if offline
+    minimum_loop_time = config.timesteps * 1.0 * (not offline) #This is equal to timesteps times alpha or zero if offline
     tradingbot = TradingBot(config)
-    simulation = Simulation(500, False, offline)
-    simulation2 = Simulation(500, False, offline)
+    simulation = Simulation(500, False, offline, 'Normal')
+    simulation2 = Simulation(500, False, offline, 'Random')
     try:
         while True:
             exec_time = tradingbot.run(simulation, simulation2)
-            print('Loop execution took:', exec_time,
-                  'seconds. Waiting %f seconds. (It is safe to force shutdown now)' % max(minimum_loop_time - exec_time,
-                                                                                          0))
-            time.sleep(max(minimum_loop_time - exec_time, 0))
+            wait_time = max(minimum_loop_time - exec_time, 0.0)
+            logging.warning('Loop execution took {} seconds. Waiting {} seconds. (It\'s safe to force shutdown now)'.format(exec_time, wait_time))
+            time.sleep(wait_time)
             if offline:
                 API_offline.decrease_global_lag()
 

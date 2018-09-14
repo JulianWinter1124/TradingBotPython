@@ -5,7 +5,7 @@ from urllib.error import HTTPError, URLError
 import pandas as pd
 
 import directory
-
+logger = logging.getLogger('API_offline')
 data = dict()
 lag = 0
 
@@ -21,7 +21,7 @@ def decrease_global_lag():
     lag -= 1
 
 def download_and_save_data(abs_path, pair, time_period):
-    print('Downloading data...')
+    logger.info('Downloading {} data...'.format(pair))
     url = 'https://poloniex.com/public?command=returnChartData' + '&currencyPair=' + str(pair) + '&start=' + str(0) + '&end=' + str(
         9999999999) + '&period=' + str(time_period)
     dataframe = pd.read_json(url, convert_dates=False)
@@ -34,7 +34,7 @@ def load_data_and_download_if_not_existent(pair_list, time_period):
         if not directory.file_exists(abs_path):
             download_and_save_data(abs_path, pair, time_period)
         else:
-            print('file exists')
+            logger.warning('File {} exists. If you want to get the latest data, remove it from data/'.format(abs_path))
         global data
         data[pair] = pd.read_csv(abs_path)
 
@@ -62,7 +62,7 @@ def receive_pair_data(pair, start_date, end_date, time_period):
     if lag == 0:
         return df.loc[(df['date'] >= start_date) & (df['date'] <= end_date)]
     elif lag < 0:
-        print('NO NEW DATA AVAILABLE. Since this is offline mode you can shutdown the bot now')
+        logger.error('NO NEW DATA AVAILABLE. Since this is offline mode you can shutdown the bot now')
     else:
         return df.loc[(df['date'] >= start_date) & (df['date'] <= end_date)].iloc[0:-lag]
 
@@ -85,7 +85,7 @@ def receive_currency_trading_info(currency): #Not really used right now
         try:
             currencies = pd.read_json('https://poloniex.com/public?command=returnCurrencies')
         except HTTPError:
-            logging.error('error retrieving [' + currency + '] trading info. Trying again in %d seconds.' % 1)
+            logger.exception('error retrieving [' + currency + '] trading info. Trying again in %d seconds.' % 1)
             time.sleep(1)
             continue
         return currencies[currency]
@@ -100,7 +100,7 @@ def receive_currency_list(): #not used right now
         try:
             currencies = pd.read_json('https://poloniex.com/public?command=returnCurrencies')
         except HTTPError:
-            logging.error('error retrieving currency list. Trying again in %d seconds.' % 1)
+            logger.exception('error retrieving currency list. Trying again in %d seconds.' % 1)
             time.sleep(1)
             continue
         return currencies.columns.values

@@ -1,3 +1,4 @@
+import logging
 import multiprocessing as mp
 from collections import defaultdict
 from itertools import repeat
@@ -8,7 +9,7 @@ from sklearn.externals import joblib
 
 import bot.data_modifier as dm
 import directory
-
+logger = logging.getLogger('data_processor')
 
 class DataProcessor():
 
@@ -42,7 +43,8 @@ class DataProcessor():
             dset = database[dset_name]
             selection_array = dset[self.n_completed[dset_name]:, :] #only select data that is not transformed into a timeseries yet
             if len(selection_array) <= self.get_minimum_data_amount_for_timeseries():  # if not enough data is available, skip this pair
-                print('not enough data for timeseries calculation', dset_name)
+                print(len(selection_array))
+                logger.warning('not enough data for timeseries calculation %s' % dset_name)
                 selection_array = None
             selection_arrays.append(selection_array)
         param_list = list(zip(database_keys, selection_arrays, self._scaler.values(), repeat(self.use_indicators), repeat(self.use_scaling),
@@ -66,12 +68,12 @@ class DataProcessor():
             dset.flush()
             finished_file.flush()
             if self._scaler[dset_name] is None:
-                print('saving new scaler')
+                logger.info('saving new {} scaler'.format(dset_name))
                 self._scaler[dset_name] = scaler
                 self._save_scaler(dset_name)
             else:
-                print("scaler is old")
-            print('completed writing ' + dset_name + ' timeseries data to file')
+                logger.info("{} scaler is old".format(dset_name))
+            logging.info('completed writing ' + dset_name + ' timeseries data to file')
         finished_file.close()
 
     def get_number_of_features(self):
@@ -83,10 +85,10 @@ class DataProcessor():
     def get_minimum_data_amount_for_timeseries(self):
         """
         calculates how many data rows are needed to produce at least one supervised data column
-        30*self.use_indicators because some indicators need 30 data rows
-        :return: the minimum data needed to produce at least 1 timestep
+        29*self.use_indicators because some indicators need 29 prior data rows
+        :return: the minimum data needed to produce 1 timestep
         """
-        return 30 * self.use_indicators + (self.n_in + self.n_out + 1)  # use_indicators=0 or =1
+        return 29 * self.use_indicators + (self.n_in + self.n_out)  # use_indicators=0 or =1
 
     def read_h5py_database_file(self):
         """
@@ -105,13 +107,13 @@ class DataProcessor():
         """
         directory.ensure_directory(self.filepath)
         file = h5py.File(self.filepath, 'w',
-                         libver='latest')  # Always overwrite because database might change TODO:change?
+                         libver='latest')  # Always overwrite because database might change
         database = self.read_h5py_database_file()
         for pair in database.keys():
             if pair in file:
-                print('Pair: ' + pair + 'already exists in' + str(file) + '...continuing')
+                logger.info('Pair: {} already exists in {} ...continuing'.format(pair, str(file)))
             else:
-                print('Pair: ' + pair + 'was not found in' + str(file) + '...creating new dataset')
+                logger.info('Pair: {} was not found in {} ...creating new'.format(pair, str(file)))
                 dset = file.create_dataset(pair, shape=(0, 1),
                                            maxshape=(None, None), dtype='float64')
                 dset.flush()
@@ -126,7 +128,7 @@ class DataProcessor():
         :return:
         """
         path = self.scaler_base_filepath + dset_name + '_scaler.save'
-        print(path)
+        logger.info('Loading {} scaler from: {}'.format(dset_name, path))
         if directory.file_exists(path):
             return joblib.load(path)
         else:
@@ -139,7 +141,7 @@ class DataProcessor():
         :return:
         """
         path = self.scaler_base_filepath + dset_name + '_scaler.save'
-        print('Saving scaler to:', path)
+        logger.info('Saving {} scaler to: {}'.format(dset_name, path))
         directory.ensure_directory(path)
         joblib.dump(self._scaler[dset_name], path) #this is from sklearn and different(?) to pickle for maximum compatibility
 
