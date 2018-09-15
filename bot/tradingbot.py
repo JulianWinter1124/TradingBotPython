@@ -9,6 +9,8 @@ from bot_ai.neural_manager import NeuralManager
 from util.config_manager import BotConfigManager
 from bot_ai import decision
 
+from matplotlib import pyplot as plt
+
 
 class TradingBot():
 
@@ -35,11 +37,21 @@ class TradingBot():
 
         if time.time() - self.config_manager.latest_training_run > self.config_manager.train_every_n_seconds: #Train new all 6 hours
 
+            print("Training model because {} seconds have passed...".format(time.time() - self.config_manager.latest_training_run))
+
             self.config_manager.latest_training_run = time.time() #save when latest training run was executed
 
             self.neural_manager.train_models(plot_history=True) #Train all models (data in train-ready file)
 
             self.config_manager.overwrite_models = False #Reset this param
+
+            dates, predictions, original = self.neural_manager.predict_all_data(scalers)
+            for pair, values in predictions.items():
+                plt.figure(figsize=(16, 8))
+                plt.plot(dates[pair], values[:, 0], label='prediction:' + pair, linewidth=0.5)
+                plt.plot(dates[pair], original[pair], label='original:' + pair, linewidth=0.5)
+                plt.legend()
+                plt.show()
 
             self.data_collector.download_and_save() #update data (training took some time)
 
@@ -47,6 +59,7 @@ class TradingBot():
 
         else:
             print('skipping training because not enough time has passed since')
+
 
         dates, predictions = self.neural_manager.predict_latest_date(scalers) #make latest predictions for latest data column (unmodified_data)
 

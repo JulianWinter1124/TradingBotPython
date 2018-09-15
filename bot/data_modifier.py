@@ -57,7 +57,8 @@ def reverse_normalize_prediction(prediction, label_index_in_original_data, n_fea
         dummy_data = np.zeros(shape=(prediction.shape[0], n_features)) #Make array with same shape as original data
         dummy_data[:, label_index_in_original_data] = pred_column
         scaled_dummy_data = scaler.inverse_transform(dummy_data) #reverse scale of dummy array containing the one column of predictions(=labels in original data)
-        cols.append(np.atleast_2d(scaled_dummy_data[:, label_index_in_original_data])) # append inverse scaled rpedictions to result list
+        unscaled_label_column = np.atleast_2d(scaled_dummy_data[:, label_index_in_original_data]).T #Dont
+        cols.append(unscaled_label_column) # append inverse scaled rpedictions to result list
     concat = np.concatenate(cols, axis=1) #concatenate list
     return concat
 
@@ -66,8 +67,8 @@ def data_to_supervised_timeseries(data, n_in=1, n_out=1, n_out_jumps=1, drop_col
     """
     Converts the given data to a supervised timeseries. Inspired from https://machinelearningmastery.com/multivariate-time-series-forecasting-lstms-keras/
     :param data: the data to convert in a numpy array
-    :param n_in: the number of steps you look back in the past (excluding present)
-    :param n_out: the number of steps you look in the future (excluding present)
+    :param n_in: the number of steps you look back in the past (excluding present) 1 or higher
+    :param n_out: the number of steps you look in the future (excluding present) allowed are -1 (no labels) or higher
     :param n_out_jumps: the jumps you make in the future (to be able to change timeframe)
     :param drop_columns_indices: the indices the data is deleted at
     :param label_columns_indices: allows multiple labels (experimental)
@@ -83,7 +84,7 @@ def data_to_supervised_timeseries(data, n_in=1, n_out=1, n_out_jumps=1, drop_col
             column = np.roll(data, i, axis=0)
         cols.append(column)
     concat = np.concatenate(cols, axis=1)
-    if n_out == 0:
+    if n_out == 0 or n_out == -1:
         concat = concat[n_in:]# NaN is always dropped
     else:
         concat = concat[n_in:-n_out*n_out_jumps]
@@ -106,7 +107,7 @@ def data_to_single_column_timeseries_without_labels(data, n_in, scaler, drop_col
     selection_array = data[-(n_in+30):, :]
     if use_indicators:  # adding indicators
         selection_array = add_indicators_to_data(selection_array)
-    if use_scaling:
+    if use_scaling: #scaling data
         if scaler is not None:
             selection_array = normalize_data(selection_array, scaler)
     cols = list()
@@ -123,11 +124,8 @@ def data_to_timeseries_without_labels(data, n_in, scaler, drop_columns_indices=[
     if use_scaling:
         if scaler is not None:
             selection_array = normalize_data(selection_array, scaler)
-    cols = list()
-    for i in range(n_in, 0, -1):
-        cols.append(selection_array[-i, :])
-    concat = np.hstack(cols)
-    return np.atleast_2d(concat)
+
+    return data_to_supervised_timeseries(selection_array, n_in, -1, 1, [], [0])
 
 def add_indicators_to_data(selection_array):
     """
@@ -141,20 +139,23 @@ def add_indicators_to_data(selection_array):
     selection_array = add_BBANDS_indicator_to_data(selection_array, close_index=0)  # 3 columns
     selection_array = add_RSI_indicator_to_data(selection_array, close_index=0)  # 1 column
     selection_array = add_OBV_indicator_to_data(selection_array, close_index=0, volume_index=6)  # 1column
+    selection_array = add_LINEARREG_indicator_to_data(selection_array, close_index=0, timeperiod=14) #column
     selection_array = drop_NaN_rows(selection_array)
     return selection_array
 
-def add_SMA_indicator_to_data(data, close_index=0, timeperiod=30):
+# See https://mrjbq7.github.io/ta-lib/funcs.html for further details on every functions
+
+def add_SMA_indicator_to_data(data, close_index=0, timeperiod=30): #Trend
     out = np.expand_dims(talib.SMA(data[:, close_index], timeperiod=timeperiod), axis=1)
     return np.concatenate([data, out], axis=1)
 
 
-def add_RSI_indicator_to_data(data, close_index=0, timeperiod=14):
+def add_RSI_indicator_to_data(data, close_index=0, timeperiod=14): #Momentum indicator
     out = np.expand_dims(talib.RSI(data[:, close_index], timeperiod=timeperiod), axis=1)
     return np.concatenate([data, out], axis=1)
 
 
-def add_BBANDS_indicator_to_data(data, close_index=0, timeperiod=5, nbdevup=2, nbdevdn=2, matype=0):
+def add_BBANDS_indicator_to_data(data, close_index=0, timeperiod=5, nbdevup=2, nbdevdn=2, matype=0): #Trend
     upperband, middleband, lowerband = talib.BBANDS(data[:, close_index], timeperiod=timeperiod, nbdevup=nbdevup,
                                                     nbdevdn=nbdevdn, matype=matype)
     list = (
@@ -164,6 +165,10 @@ def add_BBANDS_indicator_to_data(data, close_index=0, timeperiod=5, nbdevup=2, n
 
 def add_OBV_indicator_to_data(data, close_index=0, volume_index=6):  # Volume indicator
     out = np.expand_dims(talib.OBV(data[:, close_index], data[:, volume_index]), axis=1)
+    return np.concatenate((data, out), axis=1)
+
+def add_LINEARREG_indicator_to_data(data, close_index=0, timeperiod=14):  # Statistics indicator
+    out = np.expand_dims(talib.LINEARREG(data[:, close_index], timeperiod), axis=1)
     return np.concatenate((data, out), axis=1)
 
 

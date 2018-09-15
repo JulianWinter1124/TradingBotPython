@@ -24,6 +24,7 @@ def main():
         print('run "__main__.py -h" for help')
         sys.exit(2)
     for opt, arg in opts:
+        print(opt, arg)
         if opt in ('-h', '--help'):
             print('usage: python __main__.py [option]')
             print('Options:')
@@ -32,11 +33,11 @@ def main():
         elif opt in ("-r", "--reconfig"):
             config.init_variables()
             config.save_config()
-        if opt in ('--offline'):
+        elif opt in ('--offline'):
             print('running in offline mode...')
             offline = True
             API_offline.init_global_lag(1000)
-        if opt in ('--log'):
+        elif opt in ('--log'):
             print("Setting log level to", arg)
             logging.getLogger().setLevel(arg)
 

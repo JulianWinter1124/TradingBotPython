@@ -50,23 +50,23 @@ class BotConfigManager():
         self.drop_data_column_indices = [] # drop useless data columns. All data might be useful so this is empty
         self.data_date_column_indice = 1 # specifies where the data column is
         self.data_label_column_indices = [0] #where are the labels? only use one right now, more is experimental and not tested
-        self.n_in = 20 # number of input data before the current data
-        self.n_out = 4 # number of additional predicted labels
+        self.n_in = 100 # number of input data before the current data
+        self.n_out = 2 # number of additional predicted labels
         self.n_out_jumps = 1 # every n_out_jumps data point is beeing predicted. e.g 2 = every second future datapoint is beeing predicted
-        self.redownload_data = True #wether all data should be redownloaded. If you alter start, end or timesteps this has to be set to true
+        self.redownload_data = False #wether all data should be redownloaded. If you alter start, end or timesteps this has to be set to true
         self.use_scaling = True #Use scaling in data_processor and anywhere else?
-        self.overwrite_scalers = False #Use old scalers or overwrite at startup? this should be False.
+        self.overwrite_scalers = True #Use old scalers or overwrite at startup? this should be False normally and True if overwriting models.
         self.use_indicators = True #should indicators be added?
-        self.overwrite_models = False #overwrite models at startup. default=False
+        self.overwrite_models = True #overwrite models at startup. default=False
         self.overwrite_history = True #overwrites prediction history at startup. This has no big impact on bot functions
         self.batch_size = 64 #The number of datarows in one batch
         self.epochs = 50 #The maximum number of epochs (early stopping might trigger)
-        self.n_features = 6 + 8 * self.use_indicators - len(self.drop_data_column_indices) # There are 6 columns normally, add 8 if indicators are used and substract all dropped columns
+        self.n_features = 6 + 9 * self.use_indicators - len(self.drop_data_column_indices) # There are 6 columns normally, add 9 if indicators are used and substract all dropped columns
         self.layer_sizes_list = [100] #The number of neurons in each layer. The List should be at minimum 1 and can be as large as wanted
         self.activation_function = 'LeakyReLU' #The used activation function in all besides the last layer (last layer is softmax default)
         self.loss_function = 'mse' #The loss function to determine loss. there might be better stuff than mse
         self.optimizer = 'adam' #All praise adam our favourite optimizer
-        self.latest_training_run = 1536938929 #this is a timestamp when the latest training run was executed high number=never retrain
+        self.latest_training_run = 0 #this is a timestamp when the latest training run was executed high number=never retrain
         self.train_every_n_seconds = 6 * 60 * 60 # retrain every n-seconds
         self.offline = False #This is the default param for offline mode. gets overwritten by --offline command (True)
         self.display_plot_interval = 50 #The loop interval at  which plots are plotted. 50=plots are drawn every 50 tradingbot.run() completions. when not using offline mode this should be equals 1

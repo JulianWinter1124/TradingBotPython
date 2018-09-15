@@ -13,7 +13,7 @@ logger = logging.getLogger('data_processor')
 
 class DataProcessor():
 
-    def __init__(self, database_filepath, output_filepath, use_indicators, use_scaling, drop_data_columns_indices, label_column_indices, n_in, n_out, n_out_jumps, overwrite_scaler): #TODO: param list of indicators with their paramas!
+    def __init__(self, database_filepath, output_filepath, use_indicators, use_scaling, drop_data_columns_indices, label_column_indices, n_in, n_out, n_out_jumps, overwrite_scaler):
         self.n_out_jumps = n_out_jumps
         self.n_in = n_in
         self.n_out = n_out

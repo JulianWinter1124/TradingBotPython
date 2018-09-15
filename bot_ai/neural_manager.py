@@ -115,19 +115,23 @@ class NeuralManager(): #this class manages multiple neural networks for each pai
         """
         predictions = dict()
         dates = dict()
+        original = dict()
         unmodified_data_file = self.read_unmodified_data_file()
         for pair in unmodified_data_file.keys():
             dset = unmodified_data_file[pair]
             data = dset[:, :]
-            dates[pair] = data[:, 1]
             nolabels = dm.data_to_timeseries_without_labels(data, self.n_in, scalers[pair], [], self.use_scaling, self.use_indicators)
+            print(nolabels.shape)
             nolabels = nolabels.reshape((nolabels.shape[0], self.n_in, self.n_features))
             neur: Neural = self.neural_instances[pair]
             predictions[pair] = neur.predict(nolabels)
+            length = len(predictions[pair])
+            dates[pair] = data[-length:, 1]
+            original[pair] = data[-length:, self.label_index_in_original_data]
             if self.use_scaling:
                 scaler: MinMaxScaler = scalers[pair]
                 predictions[pair] = dm.reverse_normalize_prediction(predictions[pair], self.label_index_in_original_data, self.n_features, scaler)
-        return dates, predictions
+        return dates, predictions, original
 
 
     def read_finished_data_file(self):

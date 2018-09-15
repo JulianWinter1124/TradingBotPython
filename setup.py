@@ -4,9 +4,9 @@ setup(
     name='TradingBotPython',
     version='0.9',
     packages=['bot', 'util', 'bot_ai', 'examples'],
-    url='',
+    url='https://github.com/Lullatsch/TradingBotPython',
     license='',
-    author='julian',
-    author_email='',
-    description='test'
+    author='Julian Winter',
+    author_email='JulianWinter1124@web.de',
+    description='This is the Python Cryptocurrency Trading Bot implemented for my Bachelor thesis.'
 )
