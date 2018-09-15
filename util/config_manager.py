@@ -50,14 +50,14 @@ class BotConfigManager():
         self.drop_data_column_indices = [] # drop useless data columns. All data might be useful so this is empty
         self.data_date_column_indice = 1 # specifies where the data column is
         self.data_label_column_indices = [0] #where are the labels? only use one right now, more is experimental and not tested
-        self.n_in = 100 # number of input data before the current data
+        self.n_in = 10 # number of input data before the current data
         self.n_out = 2 # number of additional predicted labels
         self.n_out_jumps = 1 # every n_out_jumps data point is beeing predicted. e.g 2 = every second future datapoint is beeing predicted
-        self.redownload_data = False #wether all data should be redownloaded. If you alter start, end or timesteps this has to be set to true
+        self.redownload_data = True #wether all data should be redownloaded. If you alter start, end or timesteps this has to be set to true
         self.use_scaling = True #Use scaling in data_processor and anywhere else?
-        self.overwrite_scalers = True #Use old scalers or overwrite at startup? this should be False normally and True if overwriting models.
+        self.overwrite_scalers = False #Use old scalers or overwrite at startup? this should be False normally and True if overwriting models.
         self.use_indicators = True #should indicators be added?
-        self.overwrite_models = True #overwrite models at startup. default=False
+        self.overwrite_models = False #overwrite models at startup. default=False
         self.overwrite_history = True #overwrites prediction history at startup. This has no big impact on bot functions
         self.batch_size = 64 #The number of datarows in one batch
         self.epochs = 50 #The maximum number of epochs (early stopping might trigger)
@@ -66,15 +66,17 @@ class BotConfigManager():
         self.activation_function = 'LeakyReLU' #The used activation function in all besides the last layer (last layer is softmax default)
         self.loss_function = 'mse' #The loss function to determine loss. there might be better stuff than mse
         self.optimizer = 'adam' #All praise adam our favourite optimizer
-        self.latest_training_run = 0 #this is a timestamp when the latest training run was executed high number=never retrain
-        self.train_every_n_seconds = 6 * 60 * 60 # retrain every n-seconds
+        self.latest_training_run = 99999999999 #this is a timestamp when the latest training run was executed high number=never retrain
+        self.train_every_n_seconds = 24 * 60 * 60 # retrain every n-seconds
         self.offline = False #This is the default param for offline mode. gets overwritten by --offline command (True)
+        self.lag = 200 #This is the amount of data hold back in offline mode. This is essentially the number of actions that are simulated
         self.display_plot_interval = 50 #The loop interval at  which plots are plotted. 50=plots are drawn every 50 tradingbot.run() completions. when not using offline mode this should be equals 1
 
     def setup(self):
         from bot import API_offline
         if self.offline:
             API_offline.load_data_and_download_if_not_existent(self.pairs, self.timesteps) #download data if offline mode is true
+            API_offline.init_global_lag(self.lag)
 
     def save_config(self):
         logging.info("saving config")

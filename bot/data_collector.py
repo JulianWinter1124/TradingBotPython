@@ -81,7 +81,7 @@ class DataCollector(): #TODO: drop columns
                 logger.info('Dataset: ' + pair + 'already exists in' + str(database) + '...continuing')
             else:
                 logger.info('Dataset: ' + pair + 'was not found in' + str(database) + '...creating new dataset')
-                dset = database.create_dataset(pair, (0, 8), maxshape=(None, 8), dtype='float64')
+                dset = database.create_dataset(pair, (0, 8), maxshape=(None, 8), dtype='float32')
                 dset.flush()
         database.swmr_mode = True #switch on swmr mode to allow multiple readers at once
         database.close()

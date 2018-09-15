@@ -18,13 +18,12 @@ def main():
     config = BotConfigManager()
     offline = False
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hr", ["help", "reconfig", "offline, log"])
+        opts, args = getopt.getopt(sys.argv[1:], "hr", ["help", "reconfig", "offline", "log"])
     except getopt.GetoptError:
         print('unknwon options.')
         print('run "__main__.py -h" for help')
         sys.exit(2)
     for opt, arg in opts:
-        print(opt, arg)
         if opt in ('-h', '--help'):
             print('usage: python __main__.py [option]')
             print('Options:')
@@ -36,7 +35,6 @@ def main():
         elif opt in ('--offline'):
             print('running in offline mode...')
             offline = True
-            API_offline.init_global_lag(1000)
         elif opt in ('--log'):
             print("Setting log level to", arg)
             logging.getLogger().setLevel(arg)
@@ -58,7 +56,7 @@ def main():
         while True:
             exec_time = tradingbot.run(simulation, simulation2)
             wait_time = max(minimum_loop_time - exec_time, 0.0)
-            logging.warning('Loop execution took {} seconds. Waiting {} seconds. (It\'s safe to force shutdown now)'.format(exec_time, wait_time))
+            logging.warning('Loop execution took {} seconds. Waiting {} seconds. (It\'s safe to force shutdown now)'.format(exec_time, wait_time)) #making this a warning so its most of the time
             time.sleep(wait_time)
             if offline:
                 API_offline.decrease_global_lag()

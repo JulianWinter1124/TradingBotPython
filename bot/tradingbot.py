@@ -45,6 +45,8 @@ class TradingBot():
 
             self.config_manager.overwrite_models = False #Reset this param
 
+            self.config_manager.overwrite_scalers = False #This one too
+
             dates, predictions, original = self.neural_manager.predict_all_data(scalers)
             for pair, values in predictions.items():
                 plt.figure(figsize=(16, 8))

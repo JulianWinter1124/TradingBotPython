@@ -76,11 +76,6 @@ class DataProcessor():
             logging.info('completed writing ' + dset_name + ' timeseries data to file')
         finished_file.close()
 
-    def get_number_of_features(self):
-        """
-        :return: The number of columns for a single point in time, including indicator column number if present
-        """
-        return self.use_indicators*6 + 8 - len(self.drop_data_columns_indices)  # 6=number of indicator columns
 
     def get_minimum_data_amount_for_timeseries(self):
         """
@@ -115,7 +110,7 @@ class DataProcessor():
             else:
                 logger.info('Pair: {} was not found in {} ...creating new'.format(pair, str(file)))
                 dset = file.create_dataset(pair, shape=(0, 1),
-                                           maxshape=(None, None), dtype='float64')
+                                           maxshape=(None, None), dtype='float32')
                 dset.flush()
         database.close()
         file.flush()
