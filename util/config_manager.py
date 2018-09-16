@@ -88,6 +88,7 @@ class BotConfigManager():
         directory.ensure_directory(directory.get_absolute_path(self.unmodified_data_filepath)) #Create necessary directories
         directory.ensure_directory(directory.get_absolute_path(self.finished_data_filepath))
         directory.ensure_directory(directory.get_absolute_path(self.prediction_history_filepath))
+        directory.ensure_directory(directory.get_absolute_path('datascaler/'))
 
 
     def save_config(self):
