@@ -76,9 +76,9 @@ class TradingBot():
 
             action = decision.decide_action_on_prediction(pair, values, state,  closing_price, False, 0.8) #Decide which action to take base on prediction
 
-            action_random = decision.make_random_action(pair, state2, closing_price)
+            action_random = decision.make_random_action(pair, state2, closing_price) #make a random action
 
-            print(decision.stringify_action(action))
+            print(decision.stringify_action(action)) #Print the action the NORMAL bot is going to take
 
             state.perform_action(dates[pair], action=action) #Perform the given action.
 
@@ -92,11 +92,14 @@ class TradingBot():
             state.plot_account_history('actual bot')
             state2.plot_account_history('random bot')
 
-        self.count += 1
+        self.count += 1 #count run iterations
 
         return time.time()-start
 
     def perform_shutdown(self):
+        """
+        This method is called when a shutdown is performed
+        """
         self.config_manager.save_config()
         logging.warning("shutting down")
         raise SystemExit

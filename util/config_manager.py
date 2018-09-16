@@ -58,7 +58,7 @@ class BotConfigManager():
         self.label_transform_function = data_modifier.difference_label_transformation_function #Any function that is build like that one worls
         self.use_scaling = True #Use scaling in data_processor and anywhere else?
         self.overwrite_scalers = True #Use old scalers or overwrite at startup? this should be False normally and True if overwriting models.
-        self.use_indicators = False #should indicators be added?
+        self.use_indicators = False #should indicators be added? my tests have shown that the neural net gets confused by these
         self.overwrite_models = True #overwrite models at startup. default=False
         self.overwrite_history = True #overwrites prediction history at startup. This has no big impact on bot functions
         self.batch_size = 64 #The number of data rows in one batch
@@ -76,13 +76,19 @@ class BotConfigManager():
 
     def setup(self):
         """
-        Code that should be run before anything starts. Only doing anything in offline mode
+        Code that should be run before anything starts.
         :return:
         """
         from bot import API_offline
         if self.offline:
             API_offline.load_data_and_download_if_not_existent(self.pairs, self.timesteps) #download data if offline mode is true
             API_offline.init_global_lag(self.lag)
+
+        logging.info('ensuring directories...')
+        directory.ensure_directory(directory.get_absolute_path(self.unmodified_data_filepath)) #Create necessary directories
+        directory.ensure_directory(directory.get_absolute_path(self.finished_data_filepath))
+        directory.ensure_directory(directory.get_absolute_path(self.prediction_history_filepath))
+
 
     def save_config(self):
         """

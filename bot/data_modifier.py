@@ -110,13 +110,25 @@ def data_to_single_column_timeseries_without_labels(data, n_in, scaler, label_tr
     if use_scaling: #scaling data
         if scaler is not None:
             selection_array = normalize_data(selection_array, scaler)
-    cols = list()
+    cols = list()  #We could call data_to_supervised_timeseries as well
     for i in range(n_in, 0, -1):
         cols.append(selection_array[-i, :])
     concat = np.hstack(cols)
     return np.atleast_2d(concat)
 
 def data_to_timeseries_without_labels(data, n_in, scaler, label_transform_function=None, use_scaling=True, use_indicators=True, label_index=0):
+    """
+    This scales the data, adds indicators, the custom label and also transforms it into a timeseries without labels. This is useful to test
+    predictions on the whole dataset.
+    :param data: all data
+    :param n_in:
+    :param scaler:
+    :param label_transform_function:
+    :param use_scaling:
+    :param use_indicators:
+    :param label_index:
+    :return: the timeseries without labels
+    """
     selection_array = data[:, :]
     if use_indicators:  # adding indicators
         selection_array = add_indicators_to_data(selection_array)
@@ -129,6 +141,13 @@ def data_to_timeseries_without_labels(data, n_in, scaler, label_transform_functi
     return data_to_supervised_timeseries(selection_array, n_in, -1, 1, label_index)
 
 def add_custom_label_to_data(data, label_transform_function, label_index): #Right now this is more like an indicator
+    """
+    Adds your custom label_transformation_function column to the given data array
+    :param data:
+    :param label_transform_function:
+    :param label_index:
+    :return:
+    """
     selection_array = np.copy(data)
     new_label_column = label_transform_function(selection_array, label_index)
     selection_array = np.concatenate([selection_array, new_label_column], axis=1)
@@ -207,6 +226,12 @@ def create_ranged_labels(closing_price_column): #Not used either
     return label_list
 
 def difference_label_transformation_function(data, label_column_index):
+    """
+    this functions calculates the difference between t and t+1
+    :param data: the whole data
+    :param label_column_index: the index at which the label is (close-index)
+    :return: A np.Array with a single column containing the differences.
+    """
     future_data = np.roll(data, -1, axis=0)
     transformed = np.subtract(future_data, data)[:, label_column_index]
     transformed[-1] = np.nan #replace with nan since this value is wrong
