@@ -63,7 +63,7 @@ def reverse_normalize_prediction(prediction, label_index_in_original_data, n_fea
     return concat
 
 
-def data_to_supervised_timeseries(data, n_in=1, n_out=1, n_out_jumps=1, drop_columns_indices=[], label_columns_indices=[0]):
+def data_to_supervised_timeseries(data, n_in=1, n_out=1, n_out_jumps=1, label_columns_index=0):
     """
     Converts the given data to a supervised timeseries. Inspired from https://machinelearningmastery.com/multivariate-time-series-forecasting-lstms-keras/
     :param data: the data to convert in a numpy array
@@ -74,12 +74,11 @@ def data_to_supervised_timeseries(data, n_in=1, n_out=1, n_out_jumps=1, drop_col
     :param label_columns_indices: allows multiple labels (experimental)
     :return: the finished timeseries numpy array
     """
-    data = np.delete(data, drop_columns_indices, axis=1)
     cols = list()
     for i in range(n_in, -n_out - 1, -1):
         if i <= 0:
             column = np.roll(data, i*n_out_jumps, axis=0)
-            column = column[:, label_columns_indices]  # The future points may only contain labels
+            column = column[:, [label_columns_index]]  # The future points may only contain labels
         else:
             column = np.roll(data, i, axis=0)
         cols.append(column)
@@ -92,7 +91,7 @@ def data_to_supervised_timeseries(data, n_in=1, n_out=1, n_out_jumps=1, drop_col
     logger.info('Converted data to timeseries. It has the shape {}'.format(concat.shape))
     return concat
 
-def data_to_single_column_timeseries_without_labels(data, n_in, scaler, drop_columns_indices=[], use_scaling=True, use_indicators=True):
+def data_to_single_column_timeseries_without_labels(data, n_in, scaler, label_transform_function=None, use_scaling=True, use_indicators=True, label_index=0):
     """
     Creates a single row of timeseries data. this can be used to predict the latest date.
     :param data: all data, or at least the latest 30+n_in rows (in case indicators are used)
@@ -103,10 +102,11 @@ def data_to_single_column_timeseries_without_labels(data, n_in, scaler, drop_col
     :param use_indicators:
     :return: the timeseries row without labels
     """
-    data = np.delete(data, drop_columns_indices, axis=1)
     selection_array = data[-(n_in+30):, :]
     if use_indicators:  # adding indicators
         selection_array = add_indicators_to_data(selection_array)
+    if label_transform_function is not None:
+        selection_array = add_custom_label_to_data(selection_array, label_transform_function, label_index)
     if use_scaling: #scaling data
         if scaler is not None:
             selection_array = normalize_data(selection_array, scaler)
@@ -116,16 +116,25 @@ def data_to_single_column_timeseries_without_labels(data, n_in, scaler, drop_col
     concat = np.hstack(cols)
     return np.atleast_2d(concat)
 
-def data_to_timeseries_without_labels(data, n_in, scaler, drop_columns_indices=[], use_scaling=True, use_indicators=True):
-    data = np.delete(data, drop_columns_indices, axis=1)
+def data_to_timeseries_without_labels(data, n_in, scaler, label_transform_function=None, use_scaling=True, use_indicators=True, label_index=0):
     selection_array = data[:, :]
     if use_indicators:  # adding indicators
         selection_array = add_indicators_to_data(selection_array)
+    if label_transform_function is not None:
+        selection_array = add_custom_label_to_data(selection_array, label_transform_function, label_index)
     if use_scaling:
         if scaler is not None:
             selection_array = normalize_data(selection_array, scaler)
 
-    return data_to_supervised_timeseries(selection_array, n_in, -1, 1, [], [0])
+    return data_to_supervised_timeseries(selection_array, n_in, -1, 1, label_index)
+
+def add_custom_label_to_data(data, label_transform_function, label_index): #Right now this is more like an indicator
+    selection_array = np.copy(data)
+    new_label_column = label_transform_function(selection_array, label_index)
+    selection_array = np.concatenate([selection_array, new_label_column], axis=1)
+    #selection_array[:,[label_index,-1]] = selection_array[:,[-1,label_index]] #Swap label column so transformed label gets predicted
+    return drop_NaN_rows(selection_array)
+
 
 def add_indicators_to_data(selection_array):
     """
@@ -139,7 +148,7 @@ def add_indicators_to_data(selection_array):
     selection_array = add_BBANDS_indicator_to_data(selection_array, close_index=0)  # 3 columns
     selection_array = add_RSI_indicator_to_data(selection_array, close_index=0)  # 1 column
     selection_array = add_OBV_indicator_to_data(selection_array, close_index=0, volume_index=6)  # 1column
-    selection_array = add_LINEARREG_indicator_to_data(selection_array, close_index=0, timeperiod=14) #column
+    selection_array = add_LINEARREG_indicator_to_data(selection_array, close_index=0, timeperiod=14) # 1column
     selection_array = drop_NaN_rows(selection_array)
     return selection_array
 
@@ -196,3 +205,9 @@ def create_ranged_labels(closing_price_column): #Not used either
     label_list = [(closing_price_column[i] - closing_price_column[i - 1]) / (high - low) for i in
                   range(1, len(closing_price_column))]
     return label_list
+
+def difference_label_transformation_function(data, label_column_index):
+    future_data = np.roll(data, -1, axis=0)
+    transformed = np.subtract(future_data, data)[:, label_column_index]
+    transformed[-1] = np.nan #replace with nan since this value is wrong
+    return np.expand_dims(transformed, axis=1)

@@ -35,20 +35,20 @@ class TradingBot():
 
         scalers = self.data_processor.get_scaler_dict() #loads the scaler from the data processor
 
-        if time.time() - self.config_manager.latest_training_run > self.config_manager.train_every_n_seconds: #Train new all 6 hours
+        if time.time() - self.config_manager.latest_training_run > self.config_manager.train_every_n_seconds: #Train new all n seconds
 
             print("Training model because {} seconds have passed...".format(time.time() - self.config_manager.latest_training_run))
 
-            self.config_manager.latest_training_run = time.time() #save when latest training run was executed
-
             self.neural_manager.train_models(plot_history=True) #Train all models (data in train-ready file)
+
+            self.config_manager.latest_training_run = time.time()  # save when latest training run was executed
 
             self.config_manager.overwrite_models = False #Reset this param
 
             self.config_manager.overwrite_scalers = False #This one too
 
             dates, predictions, original = self.neural_manager.predict_all_data(scalers)
-            for pair, values in predictions.items():
+            for pair, values in predictions.items(): #Plotting the complete data with their predictions
                 plt.figure(figsize=(16, 8))
                 plt.plot(dates[pair], values[:, 0], label='prediction:' + pair, linewidth=0.5)
                 plt.plot(dates[pair], original[pair], label='original:' + pair, linewidth=0.5)

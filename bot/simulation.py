@@ -15,7 +15,7 @@ class Simulation:
         self.label = label
         self.order_history = dict()
         self.account_standing_history = pd.DataFrame(columns=['date', 'dollars', 'account worth'])
-        self.time_period = 300
+        self.time_period = 7200
         self.dollar_balance = dollar_balance
         self.disable_fees = disable_fees
         self.currency_balance = defaultdict(lambda:0)
@@ -183,8 +183,12 @@ class Simulation:
         Visualizes the account standing history by ploting both amount of dollars and account worth
         :param title: the title of the chart
         """
-        plt.plot(self.account_standing_history['date'], self.account_standing_history['dollars'], label='dollars')
-        plt.plot(self.account_standing_history['date'], self.account_standing_history['account worth'], label='Account worth')
+        x = range(len(self.account_standing_history['date']))
+        plt.plot(x, self.account_standing_history['dollars'], label='dollars')
+        plt.plot(x, self.account_standing_history['account worth'], label='Account worth')
+        plt.text(x[-1], self.account_standing_history['account worth'].iloc[-1], str(self.account_standing_history['account worth'].iloc[-1]), fontdict=None, withdash=False)
+        plt.xlabel('Aktions Nummer')
+        plt.ylabel('USD')
         plt.legend()
         plt.title(title)
         plt.show(block=False)

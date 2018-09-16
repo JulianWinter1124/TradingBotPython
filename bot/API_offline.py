@@ -19,6 +19,7 @@ def init_global_lag(n_lag):
 def decrease_global_lag():
     global lag
     lag -= 1
+    return lag
 
 def download_and_save_data(abs_path, pair, time_period):
     logger.info('Downloading {} data...'.format(pair))
@@ -66,44 +67,6 @@ def receive_pair_data(pair, start_date, end_date, time_period):
     else:
         return df.loc[(df['date'] >= start_date) & (df['date'] <= end_date)].iloc[0:-lag]
 
-
-def receive_currency_trading_info(currency): #Not really used right now
-    """
-    Receives trading info about a specific currency. Example format:
-    delisted                   0
-    depositAddress          None
-    disabled                   0
-    frozen                     0
-    id                        28
-    minConf                    1
-    name                 Bitcoin
-    txFee             0.00050000
-    :param currency: a currency shortcut as returned in receive_currency_list()
-    :return: A dataframe with trading info for the specified currency
-    """
-    while(True):
-        try:
-            currencies = pd.read_json('https://poloniex.com/public?command=returnCurrencies')
-        except HTTPError:
-            logger.exception('error retrieving [' + currency + '] trading info. Trying again in %d seconds.' % 1)
-            time.sleep(1)
-            continue
-        return currencies[currency]
-
-def receive_currency_list(): #not used right now
-    """
-    Receeives a list of all currencies on poloniex
-    see: https://poloniex.com/support/api/
-    :return: all currencies as list
-    """
-    while (True):
-        try:
-            currencies = pd.read_json('https://poloniex.com/public?command=returnCurrencies')
-        except HTTPError:
-            logger.exception('error retrieving currency list. Trying again in %d seconds.' % 1)
-            time.sleep(1)
-            continue
-        return currencies.columns.values
 
 
 

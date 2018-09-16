@@ -13,8 +13,8 @@ from bot import data_modifier as dm
 logger = logging.getLogger('neural_manager')
 
 class NeuralManager(): #this class manages multiple neural networks for each pair
-    def __init__(self, unmodified_data_filepath, finished_data_filepath, overwrite_models, batch_size, epochs, output_size, n_in, n_out, n_features, use_scaling, use_indicators, label_index_in_original_data, layer_units=[30, 20], activation_function='LeakyReLU', loss_function='mse', optimizer='adam'):
-
+    def __init__(self, unmodified_data_filepath, finished_data_filepath, overwrite_models, batch_size, epochs, output_size, n_in, n_out, n_features, label_transform_function, use_scaling, use_indicators, label_index_in_original_data, layer_units=[30, 20], activation_function='LeakyReLU', loss_function='mse', optimizer='adam'):
+        self.label_transform_function = label_transform_function
         self.n_completed = dict #not used yet. idea: dont retrain all data but only new... how though? does it work? is it useful?
         self.unmodified_data_filepath = unmodified_data_filepath #The original data filepath
         self.finished_data_filepath = finished_data_filepath #the timeseries converted data filepath
@@ -62,7 +62,6 @@ class NeuralManager(): #this class manages multiple neural networks for each pai
         for pair in pairs:
             neur: Neural = self.neural_instances[pair] # select neural instance
             gen = DataGenerator('data/finished_data.hdf5')
-            #generator = gen.create_data_generator(pair, batch_size=self.batch_size, n_in=self.n_in, n_features=self.n_features)
             data, labels = gen.read_data_and_labels_from_finished_data_file(pair, n_in=self.n_in, #read labels and data from finished file
                                                                             n_features=self.n_features)
             split_i = int(len(data) * 0.8) #use 20% as test
@@ -96,7 +95,7 @@ class NeuralManager(): #this class manages multiple neural networks for each pai
             dset = unmodified_data_file[pair]
             data = dset[:, :] #get all data in pair dset
             dates[pair] = data[-1, 1] #get last date from unmodified
-            nolabels = dm.data_to_single_column_timeseries_without_labels(data, self.n_in, scalers[pair], [], self.use_scaling, self.use_indicators) #make a single column timeseries
+            nolabels = dm.data_to_single_column_timeseries_without_labels(data, self.n_in, scalers[pair], self.label_transform_function, self.use_scaling, self.use_indicators, self.label_index_in_original_data) #make a single column timeseries
             nolabels = nolabels.reshape((nolabels.shape[0], self.n_in, self.n_features)) #Shape data in the right form for the neural network
             neur : Neural = self.neural_instances[pair]
             predictions[pair] = neur.predict(nolabels) #predict the single row timeseries
@@ -120,8 +119,7 @@ class NeuralManager(): #this class manages multiple neural networks for each pai
         for pair in unmodified_data_file.keys():
             dset = unmodified_data_file[pair]
             data = dset[:, :]
-            nolabels = dm.data_to_timeseries_without_labels(data, self.n_in, scalers[pair], [], self.use_scaling, self.use_indicators)
-            print(nolabels.shape)
+            nolabels = dm.data_to_timeseries_without_labels(data, self.n_in, scalers[pair], self.label_transform_function, self.use_scaling, self.use_indicators, self.label_index_in_original_data)
             nolabels = nolabels.reshape((nolabels.shape[0], self.n_in, self.n_features))
             neur: Neural = self.neural_instances[pair]
             predictions[pair] = neur.predict(nolabels)

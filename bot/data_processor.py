@@ -13,13 +13,13 @@ logger = logging.getLogger('data_processor')
 
 class DataProcessor():
 
-    def __init__(self, database_filepath, output_filepath, use_indicators, use_scaling, drop_data_columns_indices, label_column_indices, n_in, n_out, n_out_jumps, overwrite_scaler):
+    def __init__(self, database_filepath, output_filepath, label_transform_function, use_indicators, use_scaling, label_column_indices, n_in, n_out, n_out_jumps, overwrite_scaler):
+        self.label_transform_function = label_transform_function
         self.n_out_jumps = n_out_jumps
         self.n_in = n_in
         self.n_out = n_out
         self.use_scaling = use_scaling
-        self.drop_data_columns_indices = drop_data_columns_indices
-        self.label_column_indices = label_column_indices
+        self.label_column_index = label_column_indices
         self.use_indicators = use_indicators
         self.filepath = directory.get_absolute_path(output_filepath)
         self.database_filepath = directory.get_absolute_path(database_filepath)
@@ -43,12 +43,10 @@ class DataProcessor():
             dset = database[dset_name]
             selection_array = dset[self.n_completed[dset_name]:, :] #only select data that is not transformed into a timeseries yet
             if len(selection_array) <= self.get_minimum_data_amount_for_timeseries():  # if not enough data is available, skip this pair
-                print(len(selection_array))
                 logger.warning('not enough data for timeseries calculation %s' % dset_name)
                 selection_array = None
             selection_arrays.append(selection_array)
-        param_list = list(zip(database_keys, selection_arrays, self._scaler.values(), repeat(self.use_indicators), repeat(self.use_scaling),
-                              repeat(self.drop_data_columns_indices), repeat(self.label_column_indices), repeat(self.n_in),
+        param_list = list(zip(database_keys, selection_arrays, self._scaler.values(), repeat(self.label_transform_function), repeat(self.use_indicators), repeat(self.use_scaling), repeat(self.label_column_index), repeat(self.n_in),
                               repeat(self.n_out), repeat(self.n_out_jumps))) #zip all params into a list for use in multiprocessing Pool
         param_list = [x for x in param_list if x[1] is not None] #filter out any entries that contain no selection array
         with mp.Pool(processes=4) as pool:
@@ -83,7 +81,7 @@ class DataProcessor():
         29*self.use_indicators because some indicators need 29 prior data rows
         :return: the minimum data needed to produce 1 timestep
         """
-        return 29 * self.use_indicators + (self.n_in + self.n_out)  # use_indicators=0 or =1
+        return 29 * self.use_indicators + (self.n_in + self.n_out) + (not self.label_transform_function is None) * 1 # use_indicators=0 or =1
 
     def read_h5py_database_file(self):
         """
@@ -172,8 +170,7 @@ class DataProcessor():
 
 #this is not a class method as this needs to be pickleable by multiprocessing.
 # 'self' is an instance of the class and thus bad to use in methods that are called by processes
-def produce_modified_data(dset_name, selection_array, scaler, use_indicators, use_scaling, drop_data_columns_indices,
-                                                       label_columns_indices, n_in, n_out, n_out_jumps):
+def produce_modified_data(dset_name, selection_array, scaler, label_transform_function, use_indicators, use_scaling, label_columns_index, n_in, n_out, n_out_jumps):
     """
     scales the data and adds the indicators to it. transforms the data into a supervised timeseries at last
     :param dset_name: the pair or dset_name (it's the same)
@@ -181,8 +178,7 @@ def produce_modified_data(dset_name, selection_array, scaler, use_indicators, us
     :param scaler: if there is a scaler already use this, if None make own
     :param use_indicators: #paramsn defined in config_manager.py
     :param use_scaling:
-    :param drop_data_columns_indices:
-    :param label_columns_indices:
+    :param label_columns_index:
     :param n_in:
     :param n_out:
     :param n_out_jumps:
@@ -190,14 +186,16 @@ def produce_modified_data(dset_name, selection_array, scaler, use_indicators, us
     """
     if use_indicators:
         selection_array = dm.add_indicators_to_data(selection_array)
+    if label_transform_function is not None:
+        selection_array = dm.add_custom_label_to_data(selection_array, label_transform_function, label_columns_index)
     if use_scaling:
         if scaler is None:
             #selection_array, scaler = dm.normalize_data_MinMax(selection_array)
             selection_array, scaler = dm.normalize_data_Standard(selection_array) #use standard scaler for now
         else:
             selection_array = dm.normalize_data(selection_array, scaler)
-    timeseries_data  = dm.data_to_supervised_timeseries(selection_array, n_in=n_in, n_out=n_out, n_out_jumps=n_out_jumps, drop_columns_indices=drop_data_columns_indices, #transform to timeseries
-                                                       label_columns_indices=label_columns_indices)
+    timeseries_data  = dm.data_to_supervised_timeseries(selection_array, n_in=n_in, n_out=n_out, n_out_jumps=n_out_jumps,  #transform to timeseries
+                                                        label_columns_index=label_columns_index)
     return (dset_name, scaler, timeseries_data)
 
 

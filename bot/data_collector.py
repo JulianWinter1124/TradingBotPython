@@ -3,6 +3,7 @@ import logging
 from itertools import repeat
 
 import h5py
+import numpy as np
 
 from bot import API
 from bot import API_offline
@@ -12,7 +13,7 @@ logger = logging.getLogger('data_collector')
 class DataCollector(): #TODO: drop columns
 
     def __init__(self, relative_filepath, currency_pairs=['BTC_USDT'], start_dates=[1405699200],
-                 end_dates=[9999999999], time_period=300, overwrite=False, offline=False):
+                 end_dates=[9999999999], time_period=300, drop_column_indices=[], overwrite=False, offline=False):
         self.filepath = directory.get_absolute_path(relative_filepath)
         directory.ensure_directory(self.filepath)
         self.BASE_URL = 'https://poloniex.com/public?command=returnChartData'
@@ -21,6 +22,7 @@ class DataCollector(): #TODO: drop columns
         self.start_dates = start_dates.copy() #Starting date list for pairs
         self.last_dates = start_dates.copy()  # The last dates that had data available
         self.end_dates = end_dates.copy()
+        self.drop_column_indices = drop_column_indices
         self.overwrite = overwrite #redownload data every time or save progress
         self.create_h5py_file_and_datasets() # make sure h5 file exists and all datasets are created if needed
         self.offline = offline
@@ -30,7 +32,7 @@ class DataCollector(): #TODO: drop columns
         Main method to call. downloads and saves all data with use of multiple processes
         """
         self._update_latest_dates()
-        param_list = list(zip(self.currency_pairs, self.last_dates, self.end_dates, repeat(self.time_period), repeat(self.offline))) #make a list with all neede parameters
+        param_list = list(zip(self.currency_pairs, self.last_dates, self.end_dates, repeat(self.time_period), repeat(self.drop_column_indices), repeat(self.offline))) #make a list with all neede parameters
         with mp.Pool(processes=4) as pool:
             res = pool.starmap_async(func=data_downloader, iterable=param_list)
             pool.close() #close pool to not allow new tasks (not really needed)
@@ -81,7 +83,7 @@ class DataCollector(): #TODO: drop columns
                 logger.info('Dataset: ' + pair + 'already exists in' + str(database) + '...continuing')
             else:
                 logger.info('Dataset: ' + pair + 'was not found in' + str(database) + '...creating new dataset')
-                dset = database.create_dataset(pair, (0, 8), maxshape=(None, 8), dtype='float32')
+                dset = database.create_dataset(pair, (0, 8 - len(self.drop_column_indices)), maxshape=(None, 8 - len(self.drop_column_indices)), dtype='float32')
                 dset.flush()
         database.swmr_mode = True #switch on swmr mode to allow multiple readers at once
         database.close()
@@ -140,7 +142,7 @@ class DataCollector(): #TODO: drop columns
         file.close()
         return data
 
-def data_downloader(pair, last_date, end_date, time_period, offline):
+def data_downloader(pair, last_date, end_date, time_period, drop_column_indices, offline):
     """
     The worker methods which collects crypto data for the given pair and puts it back to queue
     :param queue:
@@ -161,4 +163,4 @@ def data_downloader(pair, last_date, end_date, time_period, offline):
     else:
         last_date = df['date'].tail(1).values[0] + 1  # +1 so that request does not get the same again
         logger.info('New Data found for downloader[' + pair + ']. New latest date: ' + str(last_date))
-        return (pair, df.values)
+        return (pair, np.delete(df.values, drop_column_indices, axis=1))

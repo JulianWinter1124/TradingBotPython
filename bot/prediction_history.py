@@ -44,30 +44,6 @@ class PredictionHistory():
         self.save_to_file() #save history after each addition
 
 
-    def add_multiple_predictions(self, pair, dates, predictions):
-        """
-        same as add_prediction but for multiple dates and predictions.
-        Experimental, just used for showcase right now
-        :param pair:
-        :param dates:
-        :param predictions:
-        :return:
-        """
-        for i in range(len(predictions)):
-            prediction = predictions[i, :]
-            prediction_date = dates[i]
-            if pair in self.history:
-                if not prediction_date in self.history[pair]:
-                    self.history[pair][prediction_date] = prediction
-                    logger.info('prediction for {} at {} put into history'.format(pair, dates[i]))
-                else:
-                    logger.warning('prediction for', prediction_date, 'already in history. Skipping')
-                    return
-            else:
-                self.history[pair] = dict()
-                self.history[pair][prediction_date] = prediction
-            self.save_to_file()
-
     def plot_prediction_history(self, pair, original_data):
         """
         Plots the saved prediction history, together with original data
