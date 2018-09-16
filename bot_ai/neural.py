@@ -1,5 +1,6 @@
 import os
 
+import directory
 
 
 class Neural():
@@ -17,6 +18,7 @@ class Neural():
         self.overwrite = overwrite #overwrite saved models?
         self.batch_size = batch_size  # how much data is processed at once
         self.filepath = 'data/training/LSTM_' + model_name + '.hdf5' # Model is saved here
+        directory.ensure_directory(directory.get_absolute_path(self.filepath))
         self.output_size = output_size #the output size should be n_out + 1
         self.model: Sequential = None
         # From https://www.kaggle.com/cbryant/keras-cnn-with-pseudolabeling-0-1514-lb/ might need tuning

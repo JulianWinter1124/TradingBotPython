@@ -54,6 +54,7 @@ def main():
         raise SystemExit
     else:
         print('loaded config successfully. run again with --reconfig if needed')
+
     config.set_offline_mode(offline)
     config.setup()
     minimum_loop_time = config.timesteps * 1.0 * (not offline) #This is equal to timesteps times alpha or zero if offline

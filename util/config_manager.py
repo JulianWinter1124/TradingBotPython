@@ -84,12 +84,6 @@ class BotConfigManager():
             API_offline.load_data_and_download_if_not_existent(self.pairs, self.timesteps) #download data if offline mode is true
             API_offline.init_global_lag(self.lag)
 
-        logging.info('ensuring directories...')
-        directory.ensure_directory(directory.get_absolute_path(self.unmodified_data_filepath)) #Create necessary directories
-        directory.ensure_directory(directory.get_absolute_path(self.finished_data_filepath))
-        directory.ensure_directory(directory.get_absolute_path(self.prediction_history_filepath))
-        directory.ensure_directory(directory.get_absolute_path('datascaler/'))
-
 
     def save_config(self):
         """

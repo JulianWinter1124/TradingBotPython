@@ -10,9 +10,10 @@ def file_exists(path):
 
 def ensure_directory(path):
     directory = os.path.dirname(path)
+    print('Trying to create:', directory)
     if not os.path.exists(directory):
         try:
-            os.makedirs(os.path.dirname(directory))
+            os.makedirs(directory)
             print("created new directory:", directory)
         except OSError as e:
             print('Error creating directory:')
