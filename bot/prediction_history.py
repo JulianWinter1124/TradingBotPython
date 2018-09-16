@@ -60,7 +60,7 @@ class PredictionHistory():
             predictions = prediction_data[date][0]
             plt.plot(dates, predictions) #both are 2D arrays
         plt.legend(loc='best')
-        plt.show(block=False)
+        plt.show() #block=False does not work appearantly
 
 
     def load_from_file(self):

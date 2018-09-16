@@ -191,7 +191,7 @@ class Simulation:
         plt.ylabel('USD')
         plt.legend()
         plt.title(title)
-        plt.show(block=False)
+        plt.show()# block=False
 
 
     def calc_win_margin_price(self, price, up_down_signum):
