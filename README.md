@@ -39,15 +39,17 @@ Assuming you already configured the bot, you can run it with the optional argume
 
 >python __main__.py [--offline, --reconfig, --log] [--help]
 
-# Examples\
+# Examples
 
 >python __main__.py --help
 
 >python __main__.py --offline --reconfig
 
+>python __main__.py --reconfig --offline --log 40
+
 >python __main__.py --offline
 
->python __main__.py --log 30
+>python __main__.py --log 20
 
 
 
