@@ -37,6 +37,12 @@ class BotConfigManager():
         # filepath, timesteps, date_column, close_column, n_out_jumps, overwrite_history
         return 'data/training_prediction_history.pickle', self.timesteps, self.data_date_column_index, self.data_label_column_index, self.n_out_jumps, self.overwrite_history
 
+
+    def load_simulation_settings(self):
+        #dollar_balance, disable_fees=False, offline=False, timesteps=300,
+        return self.bot_starting_dollars, self.disable_fees, self.offline, self.timesteps
+
+
     def set_offline_mode(self, bool):
         self.offline = bool
 
@@ -72,6 +78,8 @@ class BotConfigManager():
         self.train_every_n_seconds = 24 * 60 * 60 # retrain every n-seconds
         self.offline = False #This is the default param for offline mode. gets overwritten by --offline command (True)
         self.lag = 400 #This is the amount of data hold back in offline mode. This is essentially the number of actions that are simulated
+        self.disable_fees = False
+        self.bot_starting_dollars = 500
         self.display_plot_interval = 50 #The loop interval at  which plots are plotted. 50=plots are drawn every 50 tradingbot.run() completions. when not using offline mode this should be equals 1
 
     def setup(self):
@@ -112,7 +120,6 @@ class BotConfigManager():
         else:
             self.init_variables()
             return False
-
 
 
 

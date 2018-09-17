@@ -11,11 +11,11 @@ logger = logging.getLogger('simulation')
 
 class Simulation:
 
-    def __init__(self, dollar_balance, disable_fees=False, offline=False, label='bot_name'):
+    def __init__(self, dollar_balance, disable_fees=False, offline=False, timesteps=300, label='bot_name'):
         self.label = label
         self.order_history = dict()
         self.account_standing_history = pd.DataFrame(columns=['date', 'dollars', 'account worth'])
-        self.time_period = 7200
+        self.time_period = timesteps
         self.dollar_balance = dollar_balance
         self.disable_fees = disable_fees
         self.currency_balance = defaultdict(lambda:0)

@@ -5,6 +5,7 @@ from collections import defaultdict
 from bot.data_collector import DataCollector
 from bot.data_processor import DataProcessor
 from bot.prediction_history import PredictionHistory
+from bot.simulation import Simulation
 from bot_ai.neural_manager import NeuralManager
 from util.config_manager import BotConfigManager
 from bot_ai import decision
@@ -21,11 +22,13 @@ class TradingBot():
         self.neural_manager = NeuralManager(*self.config_manager.load_neural_manager_settings())
         self.prediction_history = PredictionHistory(*self.config_manager.load_prediction_history_settings())
         self.training_prediction_history = PredictionHistory(*self.config_manager.load_training_prediction_history_settings())
+        self.simulation = Simulation(*self.config_manager.load_simulation_settings(), 'Normal')  # The normal bot simulation
+        self.simulation2 = Simulation(*self.config_manager.load_simulation_settings(), 'Random')  # simulation for the random bot
         self.count = 0
 
 
     #execute all task within here
-    def run(self, state, state2):
+    def run(self):
 
         start = time.time() #Save start for execution time
 
@@ -46,6 +49,8 @@ class TradingBot():
             self.config_manager.overwrite_models = False #Reset this param
 
             self.config_manager.overwrite_scalers = False #This one too
+
+            self.config_manager.save_config() #Save now in case it crashes
 
             dates, predictions, original = self.neural_manager.predict_all_data(scalers)
             for pair, values in predictions.items(): #Plotting the complete data with their predictions
@@ -74,23 +79,23 @@ class TradingBot():
 
             closing_price = self.data_collector.get_latest_closing_price(pair)
 
-            action = decision.decide_action_on_prediction(pair, values, state,  closing_price, False, 0.8) #Decide which action to take base on prediction
+            action = decision.decide_action_on_prediction(pair, values, self.simulation,  closing_price, False, 0.8) #Decide which action to take base on prediction
 
-            action_random = decision.make_random_action(pair, state2, closing_price) #make a random action
+            action_random = decision.make_random_action(pair, self.simulation2, closing_price) #make a random action
 
             print(decision.stringify_action(action)) #Print the action the NORMAL bot is going to take
 
-            state.perform_action(dates[pair], action=action) #Perform the given action.
+            self.simulation.perform_action(dates[pair], action=action) #Perform the given action.
 
-            state2.perform_action(dates[pair], action=action_random)
+            self.simulation2.perform_action(dates[pair], action=action_random)
 
         min_date = min(dates.values())
-        state.update_account_standing_history(min_date) #Update the account_history data after actions have been performed
-        state2.update_account_standing_history(min_date)
+        self.simulation.update_account_standing_history(min_date) #Update the account_history data after actions have been performed
+        self.simulation2.update_account_standing_history(min_date)
 
         if self.count % self.config_manager.display_plot_interval == 0: #only plot at given interval
-            state.plot_account_history('actual bot')
-            state2.plot_account_history('random bot')
+            self.simulation.plot_account_history('actual bot')
+            self.simulation2.plot_account_history('random bot')
 
         self.count += 1 #count run iterations
 
