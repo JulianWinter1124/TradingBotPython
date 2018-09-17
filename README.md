@@ -24,7 +24,7 @@ For example:
 
 ## Configurating
 
-If desired, change the settings in /bot/config_manager.py in the *init_vars* method
+If desired, change the settings in /bot/config_manager.py in the *init_vars* method .
 
 To apply the changes run the bot with the --reconfig argument described in [Running the bot](#running-the-bot).
 
@@ -35,10 +35,21 @@ Change to the bot directory with:
 
 >cd [your path]/TradingBotPython
 
-Assuming you already configured the bot run the command with optional argument:
+Assuming you already configured the bot, you can run it with the optional arguments:
 
-python __main__.py [--offline, --reconfig] [--help]
+>python __main__.py [--offline, --reconfig, --log] [--help]
 
-for help on how to start the bot.
+# Examples\
+
+>python __main__.py --help
+
+>python __main__.py --offline --reconfig
+
+>python __main__.py --offline
+
+>python __main__.py --log 30
+
+
+
 
 
