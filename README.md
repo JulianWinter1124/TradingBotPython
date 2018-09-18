@@ -31,13 +31,10 @@ For example:
 If desired, change the settings in /bot/config_manager.py in the *init_vars* method .
 
 To apply the changes run the bot with the --reconfig argument described in [Running the bot](#running-the-bot).
+Note: You have to run the bot with --reconfig argument at least once.
 
 
 ## Running the bot
-
-Change to the bot directory with:
-
->cd [your path]/TradingBotPython
 
 Assuming you already configured the bot, you can run it with the optional arguments:
 
