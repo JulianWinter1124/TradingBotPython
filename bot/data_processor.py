@@ -81,7 +81,7 @@ class DataProcessor():
         29*self.use_indicators because some indicators need 29 prior data rows
         :return: the minimum data needed to produce 1 timestep
         """
-        return 29 * self.use_indicators + (self.n_in + self.n_out) + (not self.label_transform_function is None) * 1 # use_indicators=0 or =1
+        return 29 * self.use_indicators + (self.n_in + self.n_out*self.n_out_jumps) + (not self.label_transform_function is None) * 1 # use_indicators=0 or =1
 
     def read_h5py_database_file(self):
         """

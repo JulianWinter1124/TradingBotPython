@@ -67,26 +67,25 @@ def data_to_supervised_timeseries(data, n_in=1, n_out=1, n_out_jumps=1, label_co
     """
     Converts the given data to a supervised timeseries. Inspired from https://machinelearningmastery.com/multivariate-time-series-forecasting-lstms-keras/
     :param data: the data to convert in a numpy array
-    :param n_in: the number of steps you look back in the past (excluding present) 1 or higher
-    :param n_out: the number of steps you look in the future (excluding present) allowed are -1 (no labels) or higher
-    :param n_out_jumps: the jumps you make in the future (to be able to change timeframe)
-    :param drop_columns_indices: the indices the data is deleted at
-    :param label_columns_indices: allows multiple labels (experimental)
+    :param n_in: the number of timesteps you look back in the past. (1 or higher)
+    :param n_out: the number of timesteps+1 you look in the future. Allowed are -1 (no labels) or higher
+    :param n_out_jumps: the jumps you make in the future (e.g. 2 means t+1, t+3, t+5.... are predicted)
+    :param label_columns_index: the index where the label is stored in the data
     :return: the finished timeseries numpy array
     """
     cols = list()
-    for i in range(n_in, -n_out - 1, -1):
+    for i in range(n_in, -n_out - 1, -1): #Work from left to right
         if i <= 0:
-            column = np.roll(data, i*n_out_jumps, axis=0)
+            column = np.roll(data, i*n_out_jumps, axis=0) #'Roll' the data to create the timeseries
             column = column[:, [label_columns_index]]  # The future points may only contain labels
         else:
             column = np.roll(data, i, axis=0)
-        cols.append(column)
-    concat = np.concatenate(cols, axis=1)
+        cols.append(column) #Append the columns to the list
+    concat = np.concatenate(cols, axis=1) #Concat all columns
     if n_out == 0 or n_out == -1:
-        concat = concat[n_in:]# NaN is always dropped
+        concat = concat[n_in:]# numbers that would be NaN are always dropped
     else:
-        concat = concat[n_in:-n_out*n_out_jumps]
+        concat = concat[n_in:-n_out*n_out_jumps] #Drop
     concat = np.atleast_2d(concat)
     logger.info('Converted data to timeseries. It has the shape {}'.format(concat.shape))
     return concat
@@ -110,7 +109,7 @@ def data_to_single_column_timeseries_without_labels(data, n_in, scaler, label_tr
     if use_scaling: #scaling data
         if scaler is not None:
             selection_array = normalize_data(selection_array, scaler)
-    cols = list()  #We could call data_to_supervised_timeseries as well
+    cols = list()
     for i in range(n_in, 0, -1):
         cols.append(selection_array[-i, :])
     concat = np.hstack(cols)
@@ -137,8 +136,15 @@ def data_to_timeseries_without_labels(data, n_in, scaler, label_transform_functi
     if use_scaling:
         if scaler is not None:
             selection_array = normalize_data(selection_array, scaler)
-
-    return data_to_supervised_timeseries(selection_array, n_in, -1, 1, label_index)
+    cols = list()
+    for i in range(n_in-1, -1, -1): #Work from left to right
+        column = np.roll(selection_array, i, axis=0)
+        cols.append(column) #Append the columns to the list
+    concat = np.concatenate(cols, axis=1) #Concat all columns
+    if n_in != 1:
+        concat = concat[n_in-1:]# numbers that would be NaN are always dropped
+    concat = np.atleast_2d(concat)
+    return np.atleast_2d(concat)
 
 def add_custom_label_to_data(data, label_transform_function, label_index): #Right now this is more like an indicator
     """

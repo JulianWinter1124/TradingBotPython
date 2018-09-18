@@ -14,6 +14,7 @@ class Simulation:
     def __init__(self, dollar_balance, disable_fees=False, offline=False, timesteps=300, label='bot_name'):
         self.label = label
         self.order_history = dict()
+        self.stop_loss = dict()
         self.account_standing_history = pd.DataFrame(columns=['date', 'dollars', 'account worth'])
         self.time_period = timesteps
         self.dollar_balance = dollar_balance
@@ -150,10 +151,18 @@ class Simulation:
             logger.info('{}: Holding {}'.format(self.label, pair))
         elif actionstr is 'buy':
             self.buy_amount(pair, amount)
+            self.stop_loss[pair] = stop_loss
         elif actionstr is 'sell':
             if amount > 0:
                 cur = self.extract_second_currency_from_pair(pair)
                 self.sell(cur, amount)
+        if pair in self.stop_loss: #check for stop-losses
+            current_price = self._price_for_one_unit(pair)
+            if current_price < self.stop_loss[pair]:
+                cur = self.extract_second_currency_from_pair(pair)
+                self.sell(cur, 9999999999999) #Sell everything
+                self.stop_loss.pop(pair, None) #Remove stop-loss
+
 
     def update_account_standing_history(self, date):
         if not self.account_standing_history['date'].isin([date]).any():

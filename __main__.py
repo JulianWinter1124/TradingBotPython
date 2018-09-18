@@ -22,7 +22,6 @@ def main():
         print('run "__main__.py -h" for help')
         sys.exit(2)
     for opt, arg in opts:
-        print(opt, arg)
         if opt in ('-h', '--help'):
             print('usage: python __main__.py [options]')
             print('Options:')
@@ -63,7 +62,7 @@ def main():
         while True:
             exec_time = tradingbot.run()
             wait_time = max(minimum_loop_time - exec_time, 0.0)
-            logging.warning('Loop execution took {} seconds. Waiting {} seconds. (It\'s safe to force shutdown now)'.format(exec_time, wait_time)) #making this a warning so its visible most of the time
+            logging.warning('Loop execution took {} seconds. Waiting {} seconds. (It\'s safe to force shutdown in this period)'.format(exec_time, wait_time)) #making this a warning so its visible most of the time
             time.sleep(wait_time)
             if offline:
                 print(API_offline.decrease_global_lag()) #Decrease the data hold back

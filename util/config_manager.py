@@ -50,15 +50,15 @@ class BotConfigManager():
         self.unmodified_data_filepath = 'data/unmodified_data.h5'
         self.finished_data_filepath = 'data/finished_data.hdf5'
         self.prediction_history_filepath = 'data/prediction_history.pickle'
-        self.pairs = ['USDT_BTC']
-        self.start_dates = [1483225200] #dates in unix timestamp format
-        self.end_dates = [9999999999]
+        self.pairs = ['USDT_BTC', 'USDT_ETH'] #Pair names from poloniex. If there comes up a pandas error, the name o
+        self.start_dates = [1483225200, 1483225200] #dates in unix timestamp format, this can be any
+        self.end_dates = [9999999999, 9999999999]
         self.timesteps = 7200 # interval for new close data. this is important for poloniex api. 300secs=5minutes, valid values: 300, 900, 1800, 7200, 14400, and 86400
         self.drop_data_column_indices = [] # drop useless data columns. Please dont use negative number as this need to be DataFrame compatible
         self.data_date_column_index = 1 # specifies where the data column is
         self.data_label_column_index = 0 #where are the labels? only use one right now, more is experimental and not tested
-        self.n_in = 14 # number of input data before the current data
-        self.n_out = 2 # number of additional predicted labels
+        self.n_in = 7 # number of input data before the current data
+        self.n_out = 1 # number of additional predicted labels
         self.n_out_jumps = 1 # every n_out_jumps data point is beeing predicted. e.g 2 = every second future datapoint is beeing predicted
         self.redownload_data = True #wether all data should be redownloaded. If you alter start, end or timesteps this has to be set to true, also should be true in offline mode
         self.label_transform_function = data_modifier.difference_label_transformation_function #Any function that is build like that one worls
@@ -77,7 +77,7 @@ class BotConfigManager():
         self.latest_training_run = 0 #this is a timestamp when the latest training run was executed high number=never retrain
         self.train_every_n_seconds = 24 * 60 * 60 # retrain every n-seconds
         self.offline = False #This is the default param for offline mode. gets overwritten by --offline command (True)
-        self.lag = 400 #This is the amount of data hold back in offline mode. This is essentially the number of actions that are simulated
+        self.lag = 200 #This is the amount of data hold back in offline mode. This is essentially the number of actions that are simulated
         self.disable_fees = False
         self.bot_starting_dollars = 500
         self.display_plot_interval = 50 #The loop interval at  which plots are plotted. 50=plots are drawn every 50 tradingbot.run() completions. when not using offline mode this should be equals 1
