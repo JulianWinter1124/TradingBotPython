@@ -4,7 +4,11 @@ This is the Code for the bachelor thesis of Julian Winter
 
 ## Installation
 
-Go to https://www.ta-lib.org/hdr_dw.html and download the necessary files for Linux.
+Clone this project to the directory of your choice with:
+
+>git clone https://github.com/Lullatsch/TradingBotPython
+
+To install TA-LIB go to https://www.ta-lib.org/hdr_dw.html and download the necessary files for Linux.
 
 Follow the install instructions (mostly just copying files).
 
